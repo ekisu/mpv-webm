@@ -238,7 +238,7 @@ format_filename = (startTime, endTime) ->
 		"%%e": seconds_to_path_element(endTime)
 		"%%E": seconds_to_path_element(endTime, true)
 		"%%T": mp.get_property("media-title")
-		"%%M": (mp.get_property_native('aid') and mp.get_property_native('mute')) and '' or '-audio'
+		"%%M": (mp.get_property_native('aid') and not mp.get_property_native('mute')) and '-audio' or ''
 	filename = options.output_format
 
 	for format, value in pairs replaceTable
