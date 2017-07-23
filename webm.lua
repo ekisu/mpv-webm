@@ -423,7 +423,6 @@ encode = function(region, startTime, endTime)
   local sid = -1
   if options.only_active_tracks then
     for _, track in ipairs(get_active_tracks()) do
-      local arg = ""
       local _exp_0 = track["type"]
       if "video" == _exp_0 then
         vid = track['id']

@@ -354,7 +354,6 @@ encode = (region, startTime, endTime) ->
 	sid = -1
 	if options.only_active_tracks
 		for _, track in ipairs get_active_tracks!
-			arg = ""
 			switch track["type"]
 				when "video"
 					vid = track['id']
