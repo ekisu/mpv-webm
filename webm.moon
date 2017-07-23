@@ -73,88 +73,88 @@ append = (a, b) ->
 dimensions_changed = true
 _video_dimensions = {}
 get_video_dimensions = ->
-    return _video_dimensions unless dimensions_changed
+	return _video_dimensions unless dimensions_changed
 
-    -- this function is very much ripped from video/out/aspect.c in mpv's source
-    video_params = mp.get_property_native("video-out-params")
-    return nil if not video_params
+	-- this function is very much ripped from video/out/aspect.c in mpv's source
+	video_params = mp.get_property_native("video-out-params")
+	return nil if not video_params
 
-    dimensions_changed = false
-    keep_aspect = mp.get_property_bool("keepaspect")
-    w = video_params["w"]
-    h = video_params["h"]
-    dw = video_params["dw"]
-    dh = video_params["dh"]
-    if mp.get_property_number("video-rotate") % 180 == 90
-        w, h = h, w
-        dw, dh = dh, dw
-    
-    _video_dimensions = {
-        top_left: {},
-        bottom_right: {},
-        ratios: {},
-    }
+	dimensions_changed = false
+	keep_aspect = mp.get_property_bool("keepaspect")
+	w = video_params["w"]
+	h = video_params["h"]
+	dw = video_params["dw"]
+	dh = video_params["dh"]
+	if mp.get_property_number("video-rotate") % 180 == 90
+		w, h = h, w
+		dw, dh = dh, dw
+	
+	_video_dimensions = {
+		top_left: {},
+		bottom_right: {},
+		ratios: {},
+	}
 	window_w, window_h = mp.get_osd_size()
 
-    if keep_aspect
-        unscaled = mp.get_property_native("video-unscaled")
-        panscan = mp.get_property_number("panscan")
+	if keep_aspect
+		unscaled = mp.get_property_native("video-unscaled")
+		panscan = mp.get_property_number("panscan")
 
-        fwidth = window_w
-        fheight = math.floor(window_w / dw * dh)
-        if fheight > window_h or fheight < h
-            tmpw = math.floor(window_h / dh * dw)
-            if tmpw <= window_w
-                fheight = window_h
-                fwidth = tmpw
-        vo_panscan_area = window_h - fheight
-        f_w = fwidth / fheight
-        f_h = 1
-        if vo_panscan_area == 0
-            vo_panscan_area = window_h - fwidth
-            f_w = 1
-            f_h = fheight / fwidth
+		fwidth = window_w
+		fheight = math.floor(window_w / dw * dh)
+		if fheight > window_h or fheight < h
+			tmpw = math.floor(window_h / dh * dw)
+			if tmpw <= window_w
+				fheight = window_h
+				fwidth = tmpw
+		vo_panscan_area = window_h - fheight
+		f_w = fwidth / fheight
+		f_h = 1
+		if vo_panscan_area == 0
+			vo_panscan_area = window_h - fwidth
+			f_w = 1
+			f_h = fheight / fwidth
 
-        if unscaled or unscaled == "downscale-big"
-            vo_panscan_area = 0
-            if unscaled or (dw <= window_w and dh <= window_h)
-                fwidth = dw
-                fheight = dh
+		if unscaled or unscaled == "downscale-big"
+			vo_panscan_area = 0
+			if unscaled or (dw <= window_w and dh <= window_h)
+				fwidth = dw
+				fheight = dh
 
-        scaled_width = fwidth + math.floor(vo_panscan_area * panscan * f_w)
-        scaled_height = fheight + math.floor(vo_panscan_area * panscan * f_h)
+		scaled_width = fwidth + math.floor(vo_panscan_area * panscan * f_w)
+		scaled_height = fheight + math.floor(vo_panscan_area * panscan * f_h)
 
-        split_scaling = (dst_size, scaled_src_size, zoom, align, pan) ->
-            scaled_src_size = math.floor(scaled_src_size * 2 ^ zoom)
-            align = (align + 1) / 2
-            dst_start = math.floor((dst_size - scaled_src_size) * align + pan * scaled_src_size)
-            if dst_start < 0
-                --account for C int cast truncating as opposed to flooring
-                dst_start = dst_start + 1
-            dst_end = dst_start + scaled_src_size
-            if dst_start >= dst_end
-                dst_start = 0
-                dst_end = 1
-            return dst_start, dst_end
+		split_scaling = (dst_size, scaled_src_size, zoom, align, pan) ->
+			scaled_src_size = math.floor(scaled_src_size * 2 ^ zoom)
+			align = (align + 1) / 2
+			dst_start = math.floor((dst_size - scaled_src_size) * align + pan * scaled_src_size)
+			if dst_start < 0
+				--account for C int cast truncating as opposed to flooring
+				dst_start = dst_start + 1
+			dst_end = dst_start + scaled_src_size
+			if dst_start >= dst_end
+				dst_start = 0
+				dst_end = 1
+			return dst_start, dst_end
 
-        zoom = mp.get_property_number("video-zoom")
+		zoom = mp.get_property_number("video-zoom")
 
-        align_x = mp.get_property_number("video-align-x")
-        pan_x = mp.get_property_number("video-pan-x")
-        _video_dimensions.top_left.x, _video_dimensions.bottom_right.x = split_scaling(window_w, scaled_width, zoom, align_x, pan_x)
+		align_x = mp.get_property_number("video-align-x")
+		pan_x = mp.get_property_number("video-pan-x")
+		_video_dimensions.top_left.x, _video_dimensions.bottom_right.x = split_scaling(window_w, scaled_width, zoom, align_x, pan_x)
 
-        align_y = mp.get_property_number("video-align-y")
-        pan_y = mp.get_property_number("video-pan-y")
-        _video_dimensions.top_left.y, _video_dimensions.bottom_right.y = split_scaling(window_h,  scaled_height, zoom, align_y, pan_y)
-    else
-        _video_dimensions.top_left.x = 0
-        _video_dimensions.bottom_right.x = window_w
-        _video_dimensions.top_left.y = 0
-        _video_dimensions.bottom_right.y = window_h
+		align_y = mp.get_property_number("video-align-y")
+		pan_y = mp.get_property_number("video-pan-y")
+		_video_dimensions.top_left.y, _video_dimensions.bottom_right.y = split_scaling(window_h,  scaled_height, zoom, align_y, pan_y)
+	else
+		_video_dimensions.top_left.x = 0
+		_video_dimensions.bottom_right.x = window_w
+		_video_dimensions.top_left.y = 0
+		_video_dimensions.bottom_right.y = window_h
 
-    _video_dimensions.ratios.w = w / (_video_dimensions.bottom_right.x - _video_dimensions.top_left.x)
-    _video_dimensions.ratios.h = h / (_video_dimensions.bottom_right.y - _video_dimensions.top_left.y)
-    return _video_dimensions
+	_video_dimensions.ratios.w = w / (_video_dimensions.bottom_right.x - _video_dimensions.top_left.x)
+	_video_dimensions.ratios.h = h / (_video_dimensions.bottom_right.y - _video_dimensions.top_left.y)
+	return _video_dimensions
 
 set_dimensions_changed = () ->
 	dimensions_changed = true
@@ -165,7 +165,7 @@ clamp = (min, val, max) ->
 	return val
 
 clamp_point = (top_left, point, bottom_right) ->
-    {
+	{
 		x: clamp(top_left.x, point.x, bottom_right.x),
 		y: clamp(top_left.y, point.y, bottom_right.y)
 	}
@@ -176,9 +176,9 @@ seconds_to_time_string = (seconds, no_ms, full) ->
 	ret = ""
 	ret = string.format(".%03d", seconds * 1000 % 1000) unless no_ms
 	ret = string.format("%02d:%02d%s", math.floor(seconds / 60) % 60, math.floor(seconds) % 60, ret)
-    if full or seconds > 3600
-        ret = string.format("%d:%s", math.floor(seconds / 3600), ret)
-    ret
+	if full or seconds > 3600
+		ret = string.format("%d:%s", math.floor(seconds / 3600), ret)
+	ret
 
 seconds_to_path_element = (seconds, no_ms, full) ->
 	time_string = seconds_to_time_string(seconds, no_ms, full)
@@ -187,11 +187,11 @@ seconds_to_path_element = (seconds, no_ms, full) ->
 	return time_string
 
 file_exists = (name) ->
-    f = io.open(name, "r")
-    if f ~= nil
-        io.close(f)
-        return true
-    return false
+	f = io.open(name, "r")
+	if f ~= nil
+		io.close(f)
+		return true
+	return false
 
 -- Stores a point in the video, relative to the source resolution.
 class VideoPoint
@@ -203,13 +203,13 @@ class VideoPoint
 		d = get_video_dimensions!
 		point = clamp_point(d.top_left, {x: sx, y: sy}, d.bottom_right)
 		@x = math.floor(d.ratios.w * (point.x - d.top_left.x) + 0.5)
-        @y = math.floor(d.ratios.h * (point.y - d.top_left.y) + 0.5)
+		@y = math.floor(d.ratios.h * (point.y - d.top_left.y) + 0.5)
 
 	to_screen: =>
 		d = get_video_dimensions!
 		return {
 			x: math.floor(@x / d.ratios.w + d.top_left.x + 0.5),
-        	y: math.floor(@y / d.ratios.h + d.top_left.y + 0.5)
+			y: math.floor(@y / d.ratios.h + d.top_left.y + 0.5)
 		}
 
 class Region
@@ -415,26 +415,26 @@ encode = (region, startTime, endTime) ->
 			})
 
 	-- split the user-passed settings on whitespace
-    for token in string.gmatch(options.additional_flags, "[^%s]+") do
-        command[#command + 1] = token
+	for token in string.gmatch(options.additional_flags, "[^%s]+") do
+		command[#command + 1] = token
 	
-    if not options.strict_filesize_constraint
-    	for token in string.gmatch(options.non_strict_additional_flags, "[^%s]+") do
-        	command[#command + 1] = token
+	if not options.strict_filesize_constraint
+		for token in string.gmatch(options.non_strict_additional_flags, "[^%s]+") do
+			command[#command + 1] = token
 
 	-- Do the first pass now, as it won't require the output path. I don't think this works on streams.
 	-- Also this will ignore run_detached, at least for the first pass.
-    if options.twopass and not is_stream
-    	-- copy the commandline
-    	first_pass_cmdline = [arg for arg in *command]
-    	append(first_pass_cmdline, {
-    		"--ovcopts-add=flags=+pass1",
-    		"-of=#{options.output_extension}",
-    		"-o=#{get_null_path!}"
-    	})
-    	message("Starting first pass...")
-    	msg.verbose("First-pass command line: ", table.concat(first_pass_cmdline, " "))
-    	res = utils.subprocess({args: first_pass_cmdline, cancellable: false})
+	if options.twopass and not is_stream
+		-- copy the commandline
+		first_pass_cmdline = [arg for arg in *command]
+		append(first_pass_cmdline, {
+			"--ovcopts-add=flags=+pass1",
+			"-of=#{options.output_extension}",
+			"-o=#{get_null_path!}"
+		})
+		message("Starting first pass...")
+		msg.verbose("First-pass command line: ", table.concat(first_pass_cmdline, " "))
+		res = utils.subprocess({args: first_pass_cmdline, cancellable: false})
 		if res.status != 0
 			message("First pass failed! Check the logs for details.")
 			return
@@ -562,20 +562,20 @@ class CropPage extends Page
 		-- Monitor these properties, as they affect the video dimensions.
 		-- Set the dimensions-changed flag when they change.
 		properties = {
-	        "keepaspect",
-	        "video-out-params",
-	        "video-unscaled",
-	        "panscan",
-	        "video-zoom",
-	        "video-align-x",
-	        "video-pan-x",
-	        "video-align-y",
-	        "video-pan-y",
-	        "osd-width",
-	        "osd-height",
-	    }
-	    for _, p in ipairs(properties)
-	        mp.observe_property(p, "native", set_dimensions_changed)
+			"keepaspect",
+			"video-out-params",
+			"video-unscaled",
+			"panscan",
+			"video-zoom",
+			"video-align-x",
+			"video-pan-x",
+			"video-align-y",
+			"video-pan-y",
+			"osd-width",
+			"osd-height",
+		}
+		for _, p in ipairs(properties)
+			mp.observe_property(p, "native", set_dimensions_changed)
 
 	dispose: =>
 		mp.unobserve_property(set_dimensions_changed)
