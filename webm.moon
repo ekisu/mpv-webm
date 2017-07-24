@@ -36,15 +36,12 @@ options =
 	twopass: true
 	-- Set the number of encoding threads, for codecs libvpx and libvpx-vp9
 	libvpx_threads: 4
-	additional_flags: "--sub=no"
+	additional_flags: ""
 	-- Useful for flags that may impact output filesize, such as crf, qmin, qmax etc
 	-- Won't be applied when strict_filesize_constraint is on.
 	non_strict_additional_flags: "--ovcopts-add=crf=10"
 	-- Only encode tracks that are actually playing
 	only_active_tracks: true
-	-- If subs are visible, will attempt to 'burn' the subs into the resulting video.
-	-- Haven't tested with external subs, but it should? work.
-	hardsub: true
 	output_extension: "webm"
 	-- The font size used in the menu. Isn't used for the notifications (started encode, finished encode etc)
 	font_size: 24
@@ -296,29 +293,6 @@ get_active_tracks = ->
 			active[#active + 1] = track
 	return active
 
-get_subtitle_filters = (path) ->
-	return {} unless options.hardsub and mp.get_property_bool("sub-visibility")
-
-	additional_options = ""
-	ass_force_style = mp.get_property("sub-ass-force-style")
-	if ass_force_style and ass_force_style != ""
-		additional_options ..= ":force_style='#{ass_force_style}'"
-
-	-- Store the embedded sub index.
-	-- This relies on mpv storing sub tracks in the same order as the source file.
-	sub_index = -1
-	for _, track in ipairs mp.get_property_native("track-list")
-		sub_index += 1 if track["type"] == "sub" and not track["external"]
-		if track["selected"] and track["type"] == "sub"
-			if track["external"]
-				return {"subtitles='#{escape_filter_path(track['external-filename'])}'#{additional_options}"}
-			else
-				-- not sure if track[id] or track[src-id] should be used.
-				return {"subtitles='#{escape_filter_path(path)}':si=#{sub_index}#{additional_options}"}
-
-	-- No subs found, or subs aren't enabled.
-	return {}
-
 get_color_conversion_filters = ->
 	-- supported conversions
 	colormatrixFilter =
@@ -387,7 +361,6 @@ encode = (region, startTime, endTime) ->
 	filters = {}
 
 	append(filters, get_color_conversion_filters!)
-	append(filters, get_subtitle_filters(path))
 
 	if region and region\is_valid!
 		append(filters, {"crop=#{region.w}:#{region.h}:#{region.x}:#{region.y}"})
@@ -710,7 +683,6 @@ class EncodeOptionsPage extends Page
 		@options = {
 			{"twopass", Option("bool", "Two Pass", options.twopass)},
 			{"scale_height", Option("list", "Scale Height", options.scale_height, scaleHeightOpts)},
-			{"hardsub", Option("bool", "Hardsub", options.hardsub)},
 			{"strict_filesize_constraint", Option("bool", "Strict Filesize Constraint", options.strict_filesize_constraint)}
 		}
 

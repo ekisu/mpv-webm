@@ -36,15 +36,12 @@ local options = {
   twopass = true,
   -- Set the number of encoding threads, for codecs libvpx and libvpx-vp9
   libvpx_threads = 4,
-  additional_flags = "--sub=no",
+  additional_flags = "",
   -- Useful for flags that may impact output filesize, such as crf, qmin, qmax etc
   -- Won't be applied when strict_filesize_constraint is on.
   non_strict_additional_flags = "--ovcopts-add=crf=10",
   -- Only encode tracks that are actually playing
   only_active_tracks = true,
-  -- If subs are visible, will attempt to 'burn' the subs into the resulting video.
-  -- Haven't tested with external subs, but it should? work.
-  hardsub = true,
   output_extension = "webm",
   -- The font size used in the menu. Isn't used for the notifications (started encode, finished encode etc)
   font_size = 24,
@@ -354,35 +351,6 @@ get_active_tracks = function()
   end
   return active
 end
-local get_subtitle_filters
-get_subtitle_filters = function(path)
-  if not (options.hardsub and mp.get_property_bool("sub-visibility")) then
-    return { }
-  end
-  local additional_options = ""
-  local ass_force_style = mp.get_property("sub-ass-force-style")
-  if ass_force_style and ass_force_style ~= "" then
-    additional_options = additional_options .. ":force_style='" .. tostring(ass_force_style) .. "'"
-  end
-  local sub_index = -1
-  for _, track in ipairs(mp.get_property_native("track-list")) do
-    if track["type"] == "sub" and not track["external"] then
-      sub_index = sub_index + 1
-    end
-    if track["selected"] and track["type"] == "sub" then
-      if track["external"] then
-        return {
-          "subtitles='" .. tostring(escape_filter_path(track['external-filename'])) .. "'" .. tostring(additional_options)
-        }
-      else
-        return {
-          "subtitles='" .. tostring(escape_filter_path(path)) .. "':si=" .. tostring(sub_index) .. tostring(additional_options)
-        }
-      end
-    end
-  end
-  return { }
-end
 local get_color_conversion_filters
 get_color_conversion_filters = function()
   local colormatrixFilter = {
@@ -458,7 +426,6 @@ encode = function(region, startTime, endTime)
   append(command, get_playback_options())
   local filters = { }
   append(filters, get_color_conversion_filters())
-  append(filters, get_subtitle_filters(path))
   if region and region:is_valid() then
     append(filters, {
       "crop=" .. tostring(region.w) .. ":" .. tostring(region.h) .. ":" .. tostring(region.x) .. ":" .. tostring(region.y)
@@ -1015,10 +982,6 @@ do
         {
           "scale_height",
           Option("list", "Scale Height", options.scale_height, scaleHeightOpts)
-        },
-        {
-          "hardsub",
-          Option("bool", "Hardsub", options.hardsub)
         },
         {
           "strict_filesize_constraint",
