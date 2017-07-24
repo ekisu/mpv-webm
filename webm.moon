@@ -299,6 +299,11 @@ get_active_tracks = ->
 get_subtitle_filters = (path) ->
 	return {} unless options.hardsub and mp.get_property_bool("sub-visibility")
 
+	additional_options = ""
+	ass_force_style = mp.get_property("sub-ass-force-style")
+	if ass_force_style and ass_force_style != ""
+		additional_options ..= ":force_style='#{ass_force_style}'"
+
 	-- Store the embedded sub index.
 	-- This relies on mpv storing sub tracks in the same order as the source file.
 	sub_index = -1
@@ -306,10 +311,10 @@ get_subtitle_filters = (path) ->
 		sub_index += 1 if track["type"] == "sub" and not track["external"]
 		if track["selected"] and track["type"] == "sub"
 			if track["external"]
-				return {"subtitles='#{escape_filter_path(track['external-filename'])}'"}
+				return {"subtitles='#{escape_filter_path(track['external-filename'])}'#{additional_options}"}
 			else
 				-- not sure if track[id] or track[src-id] should be used.
-				return {"subtitles='#{escape_filter_path(path)}':si=#{sub_index}"}
+				return {"subtitles='#{escape_filter_path(path)}':si=#{sub_index}#{additional_options}"}
 
 	-- No subs found, or subs aren't enabled.
 	return {}
@@ -333,6 +338,15 @@ get_scale_filters = ->
 	if options.scale_height > 0
 		return {"scale=-1:#{options.scale_height}"}
 	return {}
+
+-- Get the current playback options, trying to match how the video is being played.
+get_playback_options = ->
+	ret = {}
+	sub_ass_force_style = mp.get_property("sub-ass-force-style")
+	if sub_ass_force_style and sub_ass_force_style != ""
+		append(ret, {"--sub-ass-force-style", sub_ass_force_style})
+
+	return ret
 
 encode = (region, startTime, endTime) ->
 	path = mp.get_property("path")
@@ -367,6 +381,8 @@ encode = (region, startTime, endTime) ->
 		"--aid=" .. (aid >= 0 and tostring(aid) or "no"),
 		"--sid=" .. (sid >= 0 and tostring(sid) or "no")
 	})
+
+	append(command, get_playback_options!)
 
 	filters = {}
 

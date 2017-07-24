@@ -359,6 +359,11 @@ get_subtitle_filters = function(path)
   if not (options.hardsub and mp.get_property_bool("sub-visibility")) then
     return { }
   end
+  local additional_options = ""
+  local ass_force_style = mp.get_property("sub-ass-force-style")
+  if ass_force_style and ass_force_style ~= "" then
+    additional_options = additional_options .. ":force_style='" .. tostring(ass_force_style) .. "'"
+  end
   local sub_index = -1
   for _, track in ipairs(mp.get_property_native("track-list")) do
     if track["type"] == "sub" and not track["external"] then
@@ -367,11 +372,11 @@ get_subtitle_filters = function(path)
     if track["selected"] and track["type"] == "sub" then
       if track["external"] then
         return {
-          "subtitles='" .. tostring(escape_filter_path(track['external-filename'])) .. "'"
+          "subtitles='" .. tostring(escape_filter_path(track['external-filename'])) .. "'" .. tostring(additional_options)
         }
       else
         return {
-          "subtitles='" .. tostring(escape_filter_path(path)) .. "':si=" .. tostring(sub_index)
+          "subtitles='" .. tostring(escape_filter_path(path)) .. "':si=" .. tostring(sub_index) .. tostring(additional_options)
         }
       end
     end
@@ -401,6 +406,18 @@ get_scale_filters = function()
     }
   end
   return { }
+end
+local get_playback_options
+get_playback_options = function()
+  local ret = { }
+  local sub_ass_force_style = mp.get_property("sub-ass-force-style")
+  if sub_ass_force_style and sub_ass_force_style ~= "" then
+    append(ret, {
+      "--sub-ass-force-style",
+      sub_ass_force_style
+    })
+  end
+  return ret
 end
 local encode
 encode = function(region, startTime, endTime)
@@ -438,6 +455,7 @@ encode = function(region, startTime, endTime)
     "--aid=" .. (aid >= 0 and tostring(aid) or "no"),
     "--sid=" .. (sid >= 0 and tostring(sid) or "no")
   })
+  append(command, get_playback_options())
   local filters = { }
   append(filters, get_color_conversion_filters())
   append(filters, get_subtitle_filters(path))
