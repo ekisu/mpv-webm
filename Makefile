@@ -7,6 +7,7 @@ SOURCES += src/encode.moon
 SOURCES += src/Page.moon
 SOURCES += src/CropPage.moon
 SOURCES += src/EncodeOptionsPage.moon
+SOURCES += src/PreviewPage.moon
 SOURCES += src/MainPage.moon
 SOURCES += src/main.moon
 

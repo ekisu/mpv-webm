@@ -85,7 +85,6 @@ encode = (region, startTime, endTime) ->
 
 	if #filters > 0
 		append(command, {
-			-- Need lavfi to make the escaping done on get_subtitle_filter work.
 			"--vf", "lavfi=[#{table.concat(filters, ',')}]"
 		})
 

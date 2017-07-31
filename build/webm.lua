@@ -1053,6 +1053,101 @@ do
   end
   EncodeOptionsPage = _class_0
 end
+local PreviewPage
+do
+  local _class_0
+  local _parent_0 = Page
+  local _base_0 = {
+    prepare = function(self)
+      local vf = mp.get_property_native("vf")
+      vf[#vf + 1] = {
+        name = "sub"
+      }
+      if self.region:is_valid() then
+        vf[#vf + 1] = {
+          name = "crop",
+          params = {
+            w = tostring(self.region.w),
+            h = tostring(self.region.h),
+            x = tostring(self.region.x),
+            y = tostring(self.region.y)
+          }
+        }
+      end
+      mp.set_property_native("vf", vf)
+      if self.startTime > -1 and self.endTime > -1 then
+        mp.set_property_native("ab-loop-a", self.startTime)
+        mp.set_property_native("ab-loop-b", self.endTime)
+        return mp.set_property_native("time-pos", self.startTime)
+      end
+    end,
+    dispose = function(self)
+      mp.set_property_native("vf", self.originalProperties["vf"])
+      mp.set_property("ab-loop-a", "no")
+      return mp.set_property("ab-loop-b", "no")
+    end,
+    draw = function(self)
+      local window_w, window_h = mp.get_osd_size()
+      local ass = assdraw.ass_new()
+      ass:new_event()
+      self:setup_text(ass)
+      ass:append("Press " .. tostring(bold('ESC')) .. " to exit preview.\\N")
+      return mp.set_osd_ass(window_w, window_h, ass.text)
+    end,
+    cancel = function(self)
+      self:hide()
+      return self.callback()
+    end
+  }
+  _base_0.__index = _base_0
+  setmetatable(_base_0, _parent_0.__base)
+  _class_0 = setmetatable({
+    __init = function(self, callback, region, startTime, endTime)
+      self.callback = callback
+      self.originalProperties = {
+        vf = mp.get_property_native("vf")
+      }
+      self.keybinds = {
+        ["ESC"] = (function()
+          local _base_1 = self
+          local _fn_0 = _base_1.cancel
+          return function(...)
+            return _fn_0(_base_1, ...)
+          end
+        end)()
+      }
+      self.region = region
+      self.startTime = startTime
+      self.endTime = endTime
+      self.isLoop = false
+    end,
+    __base = _base_0,
+    __name = "PreviewPage",
+    __parent = _parent_0
+  }, {
+    __index = function(cls, name)
+      local val = rawget(_base_0, name)
+      if val == nil then
+        local parent = rawget(cls, "__parent")
+        if parent then
+          return parent[name]
+        end
+      else
+        return val
+      end
+    end,
+    __call = function(cls, ...)
+      local _self_0 = setmetatable({}, _base_0)
+      cls.__init(_self_0, ...)
+      return _self_0
+    end
+  })
+  _base_0.__class = _class_0
+  if _parent_0.__inherited then
+    _parent_0.__inherited(_parent_0, _class_0)
+  end
+  PreviewPage = _class_0
+end
 local MainPage
 do
   local _class_0
@@ -1082,6 +1177,7 @@ do
       ass:append(tostring(bold('1:')) .. " set start time (current is " .. tostring(seconds_to_time_string(self.startTime)) .. ")\\N")
       ass:append(tostring(bold('2:')) .. " set end time (current is " .. tostring(seconds_to_time_string(self.endTime)) .. ")\\N")
       ass:append(tostring(bold('o:')) .. " change encode options\\N")
+      ass:append(tostring(bold('p:')) .. " preview\\N")
       ass:append(tostring(bold('e:')) .. " encode\\N\\N")
       ass:append(tostring(bold('ESC:')) .. " close\\N")
       return mp.set_osd_ass(window_w, window_h, ass.text)
@@ -1116,6 +1212,20 @@ do
         end
       end)())
       return encodeOptsPage:show()
+    end,
+    onPreviewEnded = function(self)
+      return self:show()
+    end,
+    preview = function(self)
+      self:hide()
+      local previewPage = PreviewPage((function()
+        local _base_1 = self
+        local _fn_0 = _base_1.onPreviewEnded
+        return function(...)
+          return _fn_0(_base_1, ...)
+        end
+      end)(), self.region, self.startTime, self.endTime)
+      return previewPage:show()
     end,
     encode = function(self)
       self:hide()
@@ -1163,6 +1273,13 @@ do
         ["o"] = (function()
           local _base_1 = self
           local _fn_0 = _base_1.changeOptions
+          return function(...)
+            return _fn_0(_base_1, ...)
+          end
+        end)(),
+        ["p"] = (function()
+          local _base_1 = self
+          local _fn_0 = _base_1.preview
           return function(...)
             return _fn_0(_base_1, ...)
           end

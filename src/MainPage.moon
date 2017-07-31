@@ -5,6 +5,7 @@ class MainPage extends Page
 			"1": self\setStartTime
 			"2": self\setEndTime
 			"o": self\changeOptions
+			"p": self\preview
 			"e": self\encode
 			"ESC": self\hide
 		@startTime = -1
@@ -33,6 +34,7 @@ class MainPage extends Page
 		ass\append("#{bold('1:')} set start time (current is #{seconds_to_time_string(@startTime)})\\N")
 		ass\append("#{bold('2:')} set end time (current is #{seconds_to_time_string(@endTime)})\\N")
 		ass\append("#{bold('o:')} change encode options\\N")
+		ass\append("#{bold('p:')} preview\\N")
 		ass\append("#{bold('e:')} encode\\N\\N")
 		ass\append("#{bold('ESC:')} close\\N")
 		mp.set_osd_ass(window_w, window_h, ass.text)
@@ -54,6 +56,14 @@ class MainPage extends Page
 		self\hide!
 		encodeOptsPage = EncodeOptionsPage(self\onOptionsChanged)
 		encodeOptsPage\show!
+
+	onPreviewEnded: =>
+		self\show!
+
+	preview: =>
+		self\hide!
+		previewPage = PreviewPage(self\onPreviewEnded, @region, @startTime, @endTime)
+		previewPage\show!
 
 	encode: =>
 		self\hide!
