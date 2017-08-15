@@ -1078,13 +1078,16 @@ do
       if self.startTime > -1 and self.endTime > -1 then
         mp.set_property_native("ab-loop-a", self.startTime)
         mp.set_property_native("ab-loop-b", self.endTime)
-        return mp.set_property_native("time-pos", self.startTime)
+        mp.set_property_native("time-pos", self.startTime)
       end
+      return mp.set_property_native("pause", false)
     end,
     dispose = function(self)
-      mp.set_property_native("vf", self.originalProperties["vf"])
       mp.set_property("ab-loop-a", "no")
-      return mp.set_property("ab-loop-b", "no")
+      mp.set_property("ab-loop-b", "no")
+      for prop, value in pairs(self.originalProperties) do
+        mp.set_property_native(prop, value)
+      end
     end,
     draw = function(self)
       local window_w, window_h = mp.get_osd_size()
@@ -1105,7 +1108,9 @@ do
     __init = function(self, callback, region, startTime, endTime)
       self.callback = callback
       self.originalProperties = {
-        vf = mp.get_property_native("vf")
+        ["vf"] = mp.get_property_native("vf"),
+        ["time-pos"] = mp.get_property_native("time-pos"),
+        ["pause"] = mp.get_property_native("pause")
       }
       self.keybinds = {
         ["ESC"] = (function()

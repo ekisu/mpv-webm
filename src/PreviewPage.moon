@@ -2,7 +2,9 @@ class PreviewPage extends Page
 	new: (callback, region, startTime, endTime) =>
 		@callback = callback
 		@originalProperties =
-			vf: mp.get_property_native("vf")
+			"vf": mp.get_property_native("vf")
+			"time-pos": mp.get_property_native("time-pos")
+			"pause": mp.get_property_native("pause")
 
 		@keybinds =
 			"ESC": self\cancel
@@ -30,12 +32,15 @@ class PreviewPage extends Page
 			mp.set_property_native("ab-loop-a", @startTime)
 			mp.set_property_native("ab-loop-b", @endTime)
 			mp.set_property_native("time-pos", @startTime)
+		mp.set_property_native("pause", false)
 
 	dispose: =>
-		-- restore original vf
-		mp.set_property_native("vf", @originalProperties["vf"])
 		mp.set_property("ab-loop-a", "no")
 		mp.set_property("ab-loop-b", "no")
+		
+		-- restore original properties
+		for prop, value in pairs @originalProperties
+			mp.set_property_native(prop, value)
 
 	draw: =>
 		window_w, window_h = mp.get_osd_size()
