@@ -25,7 +25,7 @@ options =
 	strict_bitrate_multiplier: 0.95
 	-- In kilobits.
 	strict_audio_bitrate: 64
-	video_codec: "libvpx"
+	video_codec: "libvpx-vp9"
 	audio_codec: "libvorbis"
 	twopass: true
 	-- Set the number of encoding threads, for codecs libvpx and libvpx-vp9
