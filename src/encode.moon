@@ -137,8 +137,8 @@ encode = (region, startTime, endTime) ->
 		})
 		message("Starting first pass...")
 		msg.verbose("First-pass command line: ", table.concat(first_pass_cmdline, " "))
-		res = utils.subprocess({args: first_pass_cmdline, cancellable: false})
-		if res.status != 0
+		res = run_subprocess({args: first_pass_cmdline, cancellable: false})
+		if not res
 			message("First pass failed! Check the logs for details.")
 			return
 		-- set the second pass flag on the final encode command
@@ -167,8 +167,8 @@ encode = (region, startTime, endTime) ->
 		utils.subprocess_detached({args: command})
 	else
 		message("Started encode...")
-		res = utils.subprocess({args: command, cancellable: false})
-		if res.status == 0
+		res = run_subprocess({args: command, cancellable: false})
+		if not res
 			message("Encoded successfully! Saved to\\N#{bold(out_path)}")
 		else
 			message("Encode failed! Check the logs for details.")

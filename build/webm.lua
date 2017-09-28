@@ -145,6 +145,17 @@ get_null_path = function()
   end
   return "NUL"
 end
+local run_subprocess
+run_subprocess = function(params)
+  local res = utils.subprocess(params)
+  if res.status ~= 0 then
+    msg.verbose("Command failed! Reason: ", res.error, " Killed by us? ", res.killed_by_us and "yes" or "no")
+    msg.verbose("Command stdout: ")
+    msg.verbose(res.stdout)
+    return false
+  end
+  return true
+end
 local dimensions_changed = true
 local _video_dimensions = { }
 local get_video_dimensions
@@ -487,11 +498,11 @@ encode = function(region, startTime, endTime)
     })
     message("Starting first pass...")
     msg.verbose("First-pass command line: ", table.concat(first_pass_cmdline, " "))
-    local res = utils.subprocess({
+    local res = run_subprocess({
       args = first_pass_cmdline,
       cancellable = false
     })
-    if res.status ~= 0 then
+    if not res then
       message("First pass failed! Check the logs for details.")
       return 
     end
@@ -523,11 +534,11 @@ encode = function(region, startTime, endTime)
     })
   else
     message("Started encode...")
-    local res = utils.subprocess({
+    local res = run_subprocess({
       args = command,
       cancellable = false
     })
-    if res.status == 0 then
+    if not res then
       return message("Encoded successfully! Saved to\\N" .. tostring(bold(out_path)))
     else
       return message("Encode failed! Check the logs for details.")
