@@ -538,7 +538,7 @@ encode = function(region, startTime, endTime)
       args = command,
       cancellable = false
     })
-    if not res then
+    if res then
       return message("Encoded successfully! Saved to\\N" .. tostring(bold(out_path)))
     else
       return message("Encode failed! Check the logs for details.")

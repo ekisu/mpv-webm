@@ -168,7 +168,7 @@ encode = (region, startTime, endTime) ->
 	else
 		message("Started encode...")
 		res = run_subprocess({args: command, cancellable: false})
-		if not res
+		if res
 			message("Encoded successfully! Saved to\\N#{bold(out_path)}")
 		else
 			message("Encode failed! Check the logs for details.")
