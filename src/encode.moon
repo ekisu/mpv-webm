@@ -29,12 +29,30 @@ get_scale_filters = ->
 		return {"scale=-1:#{options.scale_height}"}
 	return {}
 
+append_property = (out, property_name, option_name) ->
+	option_name = option_name or property_name
+	prop = mp.get_property(property_name)
+	if prop and prop != ""
+		append(out, {"--#{option_name}=#{prop}"})
+
+-- Reads a mpv "list option" property and set the corresponding command line flags (as specified on the manual)
+-- option_prefix is optional, will be set to property_name if empty
+append_list_options = (out, property_name, option_prefix) ->
+	option_prefix = option_prefix or property_name
+	prop = mp.get_property_native(property_name)
+	if prop
+		for value in *prop
+			append(out, {"--#{option_prefix}-append=#{value}"})
+
 -- Get the current playback options, trying to match how the video is being played.
 get_playback_options = ->
 	ret = {}
-	sub_ass_force_style = mp.get_property("sub-ass-force-style")
-	if sub_ass_force_style and sub_ass_force_style != ""
-		append(ret, {"--sub-ass-force-style", sub_ass_force_style})
+	append_property(ret, "sub-ass-override")
+	append_property(ret, "sub-ass-force-style")
+	append_property(ret, "sub-auto")
+
+	append_list_options(ret, "sub-file-paths")
+	append_list_options(ret, "sub-file", "sub-files")
 
 	return ret
 

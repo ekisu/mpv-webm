@@ -379,16 +379,37 @@ get_scale_filters = function()
   end
   return { }
 end
+local append_property
+append_property = function(out, property_name, option_name)
+  option_name = option_name or property_name
+  local prop = mp.get_property(property_name)
+  if prop and prop ~= "" then
+    return append(out, {
+      "--" .. tostring(option_name) .. "=" .. tostring(prop)
+    })
+  end
+end
+local append_list_options
+append_list_options = function(out, property_name, option_prefix)
+  option_prefix = option_prefix or property_name
+  local prop = mp.get_property_native(property_name)
+  if prop then
+    for _index_0 = 1, #prop do
+      local value = prop[_index_0]
+      append(out, {
+        "--" .. tostring(option_prefix) .. "-append=" .. tostring(value)
+      })
+    end
+  end
+end
 local get_playback_options
 get_playback_options = function()
   local ret = { }
-  local sub_ass_force_style = mp.get_property("sub-ass-force-style")
-  if sub_ass_force_style and sub_ass_force_style ~= "" then
-    append(ret, {
-      "--sub-ass-force-style",
-      sub_ass_force_style
-    })
-  end
+  append_property(ret, "sub-ass-override")
+  append_property(ret, "sub-ass-force-style")
+  append_property(ret, "sub-auto")
+  append_list_options(ret, "sub-file-paths")
+  append_list_options(ret, "sub-file", "sub-files")
   return ret
 end
 local encode
