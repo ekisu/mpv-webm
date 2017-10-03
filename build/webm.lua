@@ -409,7 +409,7 @@ get_playback_options = function()
   append_property(ret, "sub-ass-force-style")
   append_property(ret, "sub-auto")
   append_list_options(ret, "sub-file-paths")
-  append_list_options(ret, "sub-file", "sub-files")
+  append_list_options(ret, "sub-files")
   return ret
 end
 local encode
