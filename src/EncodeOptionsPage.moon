@@ -123,12 +123,16 @@ class EncodeOptionsPage extends Page
 		-- TODO this shouldn't be here.
 		scaleHeightOpts =
 			possibleValues: {{-1, "no"}, {240}, {360}, {480}, {720}, {1080}, {1440}, {2160}}
+		filesizeOpts =
+			step: 250
+			min: 250
 		-- This could be a dict instead of a array of pairs, but order isn't guaranteed
 		-- by dicts on Lua.
 		@options = {
 			{"twopass", Option("bool", "Two Pass", options.twopass)},
 			{"scale_height", Option("list", "Scale Height", options.scale_height, scaleHeightOpts)},
-			{"strict_filesize_constraint", Option("bool", "Strict Filesize Constraint", options.strict_filesize_constraint)}
+			{"strict_filesize_constraint", Option("bool", "Strict Filesize Constraint", options.strict_filesize_constraint)},
+			{"target_filesize", Option("int", "Target Filesize", options.target_filesize, filesizeOpts)}
 		}
 
 		@keybinds =

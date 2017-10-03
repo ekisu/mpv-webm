@@ -1024,6 +1024,10 @@ do
           }
         }
       }
+      local filesizeOpts = {
+        step = 250,
+        min = 250
+      }
       self.options = {
         {
           "twopass",
@@ -1036,6 +1040,10 @@ do
         {
           "strict_filesize_constraint",
           Option("bool", "Strict Filesize Constraint", options.strict_filesize_constraint)
+        },
+        {
+          "target_filesize",
+          Option("int", "Target Filesize", options.target_filesize, filesizeOpts)
         }
       }
       self.keybinds = {
