@@ -788,10 +788,43 @@ local Option
 do
   local _class_0
   local _base_0 = {
+    hasPrevious = function(self)
+      local _exp_0 = self.optType
+      if "bool" == _exp_0 then
+        return true
+      elseif "int" == _exp_0 then
+        if self.opts.min then
+          return self.value > self.opts.min
+        else
+          return true
+        end
+      elseif "list" == _exp_0 then
+        return self.value > 1
+      end
+    end,
+    hasNext = function(self)
+      local _exp_0 = self.optType
+      if "bool" == _exp_0 then
+        return true
+      elseif "int" == _exp_0 then
+        if self.opts.max then
+          return self.value < self.opts.max
+        else
+          return true
+        end
+      elseif "list" == _exp_0 then
+        return self.value < #self.opts.possibleValues
+      end
+    end,
     leftKey = function(self)
       local _exp_0 = self.optType
       if "bool" == _exp_0 then
         self.value = not self.value
+      elseif "int" == _exp_0 then
+        self.value = self.value - self.opts.step
+        if self.opts.min and self.opts.min > self.value then
+          self.value = self.opts.min
+        end
       elseif "list" == _exp_0 then
         if self.value > 1 then
           self.value = self.value - 1
@@ -802,8 +835,13 @@ do
       local _exp_0 = self.optType
       if "bool" == _exp_0 then
         self.value = not self.value
+      elseif "int" == _exp_0 then
+        self.value = self.value + self.opts.step
+        if self.opts.max and self.opts.max < self.value then
+          self.value = self.opts.max
+        end
       elseif "list" == _exp_0 then
-        if self.value < #self.possibleValues then
+        if self.value < #self.opts.possibleValues then
           self.value = self.value + 1
         end
       end
@@ -812,10 +850,12 @@ do
       local _exp_0 = self.optType
       if "bool" == _exp_0 then
         return self.value
+      elseif "int" == _exp_0 then
+        return self.value
       elseif "list" == _exp_0 then
         local value, _
         do
-          local _obj_0 = self.possibleValues[self.value]
+          local _obj_0 = self.opts.possibleValues[self.value]
           value, _ = _obj_0[1], _obj_0[2]
         end
         return value
@@ -825,9 +865,11 @@ do
       local _exp_0 = self.optType
       if "bool" == _exp_0 then
         self.value = value
+      elseif "int" == _exp_0 then
+        self.value = value
       elseif "list" == _exp_0 then
         local set = false
-        for i, possiblePair in ipairs(self.possibleValues) do
+        for i, possiblePair in ipairs(self.opts.possibleValues) do
           local possibleValue, _
           possibleValue, _ = possiblePair[1], possiblePair[2]
           if possibleValue == value then
@@ -845,10 +887,12 @@ do
       local _exp_0 = self.optType
       if "bool" == _exp_0 then
         return self.value and "yes" or "no"
+      elseif "int" == _exp_0 then
+        return tostring(self.value)
       elseif "list" == _exp_0 then
         local value, displayValue
         do
-          local _obj_0 = self.possibleValues[self.value]
+          local _obj_0 = self.opts.possibleValues[self.value]
           value, displayValue = _obj_0[1], _obj_0[2]
         end
         return displayValue or value
@@ -860,11 +904,11 @@ do
       else
         ass:append(tostring(self.displayText) .. ": ")
       end
-      if self.optType == "bool" or self.value > 1 then
+      if self:hasPrevious() then
         ass:append("◀ ")
       end
       ass:append(self:getDisplayValue())
-      if self.optType == "bool" or self.value < #self.possibleValues then
+      if self:hasNext() then
         ass:append(" ▶")
       end
       return ass:append("\\N")
@@ -872,10 +916,10 @@ do
   }
   _base_0.__index = _base_0
   _class_0 = setmetatable({
-    __init = function(self, optType, displayText, value, possibleValues)
+    __init = function(self, optType, displayText, value, opts)
       self.optType = optType
       self.displayText = displayText
-      self.possibleValues = possibleValues
+      self.opts = opts
       self.value = 1
       return self:setValue(value)
     end,
@@ -952,30 +996,32 @@ do
       self.callback = callback
       self.currentOption = 1
       local scaleHeightOpts = {
-        {
-          -1,
-          "no"
-        },
-        {
-          240
-        },
-        {
-          360
-        },
-        {
-          480
-        },
-        {
-          720
-        },
-        {
-          1080
-        },
-        {
-          1440
-        },
-        {
-          2160
+        possibleValues = {
+          {
+            -1,
+            "no"
+          },
+          {
+            240
+          },
+          {
+            360
+          },
+          {
+            480
+          },
+          {
+            720
+          },
+          {
+            1080
+          },
+          {
+            1440
+          },
+          {
+            2160
+          }
         }
       }
       self.options = {
