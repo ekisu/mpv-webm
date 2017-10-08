@@ -463,7 +463,7 @@ encode = function(region, startTime, endTime)
       "lavfi=[" .. tostring(table.concat(filters, ',')) .. "]"
     })
   end
-  if options.video_codec == "libvpx" or options.audio_codec == "libvpx-vp9" then
+  if options.video_codec == "libvpx" or options.video_codec == "libvpx-vp9" then
     append(command, {
       "--ovcopts-add=threads=" .. tostring(options.libvpx_threads)
     })

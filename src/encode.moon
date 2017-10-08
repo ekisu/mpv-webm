@@ -106,7 +106,7 @@ encode = (region, startTime, endTime) ->
 			"--vf", "lavfi=[#{table.concat(filters, ',')}]"
 		})
 
-	if options.video_codec == "libvpx" or options.audio_codec == "libvpx-vp9"
+	if options.video_codec == "libvpx" or options.video_codec == "libvpx-vp9"
 		append(command, {
 			"--ovcopts-add=threads=#{options.libvpx_threads}"
 		})
