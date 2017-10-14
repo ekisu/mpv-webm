@@ -40,8 +40,6 @@ local options = {
   -- Useful for flags that may impact output filesize, such as crf, qmin, qmax etc
   -- Won't be applied when strict_filesize_constraint is on.
   non_strict_additional_flags = "--ovcopts-add=crf=10",
-  -- Only encode tracks that are actually playing
-  only_active_tracks = true,
   output_extension = "webm",
   -- The font size used in the menu. Isn't used for the notifications (started encode, finished encode etc)
   font_size = 24,
@@ -431,16 +429,14 @@ encode = function(region, startTime, endTime)
   local vid = -1
   local aid = -1
   local sid = -1
-  if options.only_active_tracks then
-    for _, track in ipairs(get_active_tracks()) do
-      local _exp_0 = track["type"]
-      if "video" == _exp_0 then
-        vid = track['id']
-      elseif "audio" == _exp_0 then
-        aid = track['id']
-      elseif "sub" == _exp_0 then
-        sid = track['id']
-      end
+  for _, track in ipairs(get_active_tracks()) do
+    local _exp_0 = track["type"]
+    if "video" == _exp_0 then
+      vid = track['id']
+    elseif "audio" == _exp_0 then
+      aid = track['id']
+    elseif "sub" == _exp_0 then
+      sid = track['id']
     end
   end
   append(command, {

@@ -74,15 +74,14 @@ encode = (region, startTime, endTime) ->
 	vid = -1
 	aid = -1
 	sid = -1
-	if options.only_active_tracks
-		for _, track in ipairs get_active_tracks!
-			switch track["type"]
-				when "video"
-					vid = track['id']
-				when "audio"
-					aid = track['id']
-				when "sub"
-					sid = track['id']
+	for _, track in ipairs get_active_tracks!
+		switch track["type"]
+			when "video"
+				vid = track['id']
+			when "audio"
+				aid = track['id']
+			when "sub"
+				sid = track['id']
 
 	append(command, {
 		"--vid=" .. (vid >= 0 and tostring(vid) or "no"),
