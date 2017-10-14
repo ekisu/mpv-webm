@@ -51,8 +51,11 @@ get_playback_options = ->
 	append_property(ret, "sub-ass-force-style")
 	append_property(ret, "sub-auto")
 
-	append_list_options(ret, "sub-file-paths")
-	append_list_options(ret, "sub-files")
+	-- tracks added manually (eg. drag-and-drop) won't appear on sub-files, so we
+	-- read them from the track-list.
+	for _, track in ipairs mp.get_property_native("track-list")
+		if track["type"] == "sub" and track["external"]
+			append(ret, {"--sub-files-append=#{track['external-filename']}"})
 
 	return ret
 

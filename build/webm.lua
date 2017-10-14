@@ -406,8 +406,13 @@ get_playback_options = function()
   append_property(ret, "sub-ass-override")
   append_property(ret, "sub-ass-force-style")
   append_property(ret, "sub-auto")
-  append_list_options(ret, "sub-file-paths")
-  append_list_options(ret, "sub-files")
+  for _, track in ipairs(mp.get_property_native("track-list")) do
+    if track["type"] == "sub" and track["external"] then
+      append(ret, {
+        "--sub-files-append=" .. tostring(track['external-filename'])
+      })
+    end
+  end
   return ret
 end
 local encode
