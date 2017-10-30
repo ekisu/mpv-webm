@@ -134,9 +134,16 @@ class EncodeOptionsPage extends Page
 			altDisplayNames:
 				[0]: "disabled"
 
+		-- I really dislike hardcoding this here, but, as said below, order in dicts isn't
+		-- guaranteed, and we can't use the formats dict keys.
+		formatIds = {"webm-vp8", "webm-vp9", "raw"}
+		formatOpts =
+			possibleValues: [{fId, formats[fId].displayName} for fId in *formatIds]
+
 		-- This could be a dict instead of a array of pairs, but order isn't guaranteed
 		-- by dicts on Lua.
 		@options = {
+			{"output_format", Option("list", "Output Format", options.output_format, formatOpts)}
 			{"twopass", Option("bool", "Two Pass", options.twopass)},
 			{"scale_height", Option("list", "Scale Height", options.scale_height, scaleHeightOpts)},
 			{"strict_filesize_constraint", Option("bool", "Strict Filesize Constraint", options.strict_filesize_constraint)},

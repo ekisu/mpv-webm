@@ -5,14 +5,14 @@ options =
 	-- A starting "~" will be replaced by the home dir.
 	output_directory: ""
 	run_detached: false
-	-- Format string for the output file
+	-- Template string for the output file
 	-- %f - Filename, with extension
 	-- %F - Filename, without extension
 	-- %T - Media title, if it exists, or filename, with extension (useful for some streams, such as YouTube).
 	-- %s, %e - Start and end time, with milliseconds
 	-- %S, %E - Start and time, without milliseconds
 	-- %M - "-audio", if audio is enabled, empty otherwise
-	output_format: "%F-[%s-%e]%M"
+	output_template: "%F-[%s-%e]%M"
 	-- Scale video to a certain height, keeping the aspect ratio. -1 disables it.
 	scale_height: -1
 	-- Target filesize, in kB.
@@ -25,8 +25,10 @@ options =
 	strict_bitrate_multiplier: 0.95
 	-- In kilobits.
 	strict_audio_bitrate: 64
-	video_codec: "libvpx"
-	audio_codec: "libvorbis"
+	-- Sets the output format, from a few predefined ones.
+	-- Currently we have webm-vp8 (libvpx/libvorbis), webm-vp9 (libvpx-vp9/libvorbis)
+	-- and raw (rawvideo/pcm_s16le).
+	output_format: "webm-vp8"
 	twopass: true
 	-- Set the number of encoding threads, for codecs libvpx and libvpx-vp9
 	libvpx_threads: 4
@@ -34,7 +36,6 @@ options =
 	-- Useful for flags that may impact output filesize, such as crf, qmin, qmax etc
 	-- Won't be applied when strict_filesize_constraint is on.
 	non_strict_additional_flags: "--ovcopts-add=crf=10"
-	output_extension: "webm"
 	-- The font size used in the menu. Isn't used for the notifications (started encode, finished encode etc)
 	font_size: 24
 	margin: 10

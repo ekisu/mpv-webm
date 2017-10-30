@@ -9,21 +9,6 @@ get_active_tracks = ->
 			active[#active + 1] = track
 	return active
 
-get_color_conversion_filters = ->
-	-- supported conversions
-	colormatrixFilter =
-		"bt.709": "bt709"
-		"bt.2020": "bt2020"
-	ret = {}
-	-- vp8 only supports bt.601, so add a conversion filter
-	-- thanks anon
-	colormatrix = mp.get_property_native("video-params/colormatrix")
-	if options.video_codec == "libvpx" and colormatrixFilter[colormatrix]
-		append(ret, {
-			"colormatrix=#{colormatrixFilter[colormatrix]}:bt601"
-		})
-	return ret
-
 get_scale_filters = ->
 	if options.scale_height > 0
 		return {"scale=-1:#{options.scale_height}"}
@@ -60,6 +45,8 @@ get_playback_options = ->
 	return ret
 
 encode = (region, startTime, endTime) ->
+	format = formats[options.output_format]
+
 	path = mp.get_property("path")
 	if not path
 		message("No file is being played")
@@ -71,7 +58,7 @@ encode = (region, startTime, endTime) ->
 		"mpv", path,
 		"--start=" .. seconds_to_time_string(startTime, false, true),
 		"--end=" .. seconds_to_time_string(endTime, false, true),
-		"--ovc=#{options.video_codec}",	"--oac=#{options.audio_codec}"
+		"--ovc=#{format.videoCodec}", "--oac=#{format.audioCodec}"
 	}
 
 	vid = -1
@@ -95,25 +82,23 @@ encode = (region, startTime, endTime) ->
 	append(command, get_playback_options!)
 
 	filters = {}
-
-	append(filters, get_color_conversion_filters!)
+	append(filters, format\getPreFilters!)
 
 	if region and region\is_valid!
 		append(filters, {"crop=#{region.w}:#{region.h}:#{region.x}:#{region.y}"})
 
 	append(filters, get_scale_filters!)
 
+	append(filters, format\getPostFilters!)
+
 	if #filters > 0
 		append(command, {
 			"--vf", "lavfi=[#{table.concat(filters, ',')}]"
 		})
 
-	if options.video_codec == "libvpx" or options.video_codec == "libvpx-vp9"
-		append(command, {
-			"--ovcopts-add=threads=#{options.libvpx_threads}"
-		})
+	append(command, format\getFlags!)
 
-	if options.target_filesize > 0
+	if options.target_filesize > 0 and format.acceptsBitrate
 		dT = endTime - startTime
 		if options.strict_filesize_constraint
 			-- Calculate video bitrate, assume audio is constant.
@@ -147,7 +132,7 @@ encode = (region, startTime, endTime) ->
 
 	-- Do the first pass now, as it won't require the output path. I don't think this works on streams.
 	-- Also this will ignore run_detached, at least for the first pass.
-	if options.twopass and not is_stream
+	if options.twopass and format.supportsTwopass and not is_stream
 		-- copy the commandline
 		first_pass_cmdline = [arg for arg in *command]
 		append(first_pass_cmdline, {
@@ -175,7 +160,7 @@ encode = (region, startTime, endTime) ->
 	if options.output_directory != ""
 		dir = parse_directory(options.output_directory)
 	
-	formatted_filename = format_filename(startTime, endTime)
+	formatted_filename = format_filename(startTime, endTime, format)
 	out_path = utils.join_path(dir, formatted_filename)
 	append(command, {"-o=#{out_path}"})
 

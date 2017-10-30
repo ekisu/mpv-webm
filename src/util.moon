@@ -37,7 +37,7 @@ file_exists = (name) ->
 		return true
 	return false
 
-format_filename = (startTime, endTime) ->
+format_filename = (startTime, endTime, videoFormat) ->
 	replaceTable =
 		"%%f": mp.get_property("filename")
 		"%%F": mp.get_property("filename/no-ext")
@@ -47,7 +47,7 @@ format_filename = (startTime, endTime) ->
 		"%%E": seconds_to_path_element(endTime, true)
 		"%%T": mp.get_property("media-title")
 		"%%M": (mp.get_property_native('aid') and not mp.get_property_native('mute')) and '-audio' or ''
-	filename = options.output_format
+	filename = options.output_template
 
 	for format, value in pairs replaceTable
 		filename, _ = filename\gsub(format, value)
@@ -57,7 +57,7 @@ format_filename = (startTime, endTime) ->
 	-- Linux: /
 	filename, _ = filename\gsub("[<>:\"/\\|?*]", "")
 
-	return "#{filename}.#{options.output_extension}"
+	return "#{filename}.#{videoFormat.outputExtension}"
 
 parse_directory = (dir) ->
 	home_dir = os.getenv("HOME")
