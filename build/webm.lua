@@ -910,7 +910,11 @@ do
       if "bool" == _exp_0 then
         return self.value and "yes" or "no"
       elseif "int" == _exp_0 then
-        return tostring(self.value)
+        if self.opts.altDisplayNames and self.opts.altDisplayNames[self.value] then
+          return self.opts.altDisplayNames[self.value]
+        else
+          return tostring(self.value)
+        end
       elseif "list" == _exp_0 then
         local value, displayValue
         do
@@ -1048,7 +1052,10 @@ do
       }
       local filesizeOpts = {
         step = 250,
-        min = 250
+        min = 0,
+        altDisplayNames = {
+          [0] = "disabled"
+        }
       }
       self.options = {
         {

@@ -4,6 +4,8 @@ class Option
 	--     - opts.step specifies the step on which the values are changed.
 	--     - opts.min specifies a minimum value for the option.
 	--     - opts.max specifies a maximum value for the option.
+	--     - opts.altDisplayNames is a int->string dict, which contains alternative display names
+	--       for certain values.
 	-- If optType is a "list", @value is the index of the current option, inside opts.possibleValues.
 	-- opts.possibleValues is a array in the format
 	-- {
@@ -99,7 +101,10 @@ class Option
 			when "bool"
 				return @value and "yes" or "no"
 			when "int"
-				return "#{@value}"
+				if @opts.altDisplayNames and @opts.altDisplayNames[@value]
+					return @opts.altDisplayNames[@value]
+				else
+					return "#{@value}"
 			when "list"
 				{value, displayValue} = @opts.possibleValues[@value]
 				return displayValue or value
@@ -125,7 +130,10 @@ class EncodeOptionsPage extends Page
 			possibleValues: {{-1, "no"}, {240}, {360}, {480}, {720}, {1080}, {1440}, {2160}}
 		filesizeOpts =
 			step: 250
-			min: 250
+			min: 0
+			altDisplayNames:
+				[0]: "disabled"
+
 		-- This could be a dict instead of a array of pairs, but order isn't guaranteed
 		-- by dicts on Lua.
 		@options = {
