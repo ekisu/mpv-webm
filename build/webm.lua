@@ -475,7 +475,7 @@ do
   _class_0 = setmetatable({
     __init = function(self)
       self.displayName = "WebM"
-      self.suportsTwopass = true
+      self.supportsTwopass = true
       self.videoCodec = "libvpx"
       self.audioCodec = "libvorbis"
       self.outputExtension = "webm"
@@ -525,7 +525,7 @@ do
   _class_0 = setmetatable({
     __init = function(self)
       self.displayName = "WebM (VP9)"
-      self.suportsTwopass = true
+      self.supportsTwopass = true
       self.videoCodec = "libvpx-vp9"
       self.audioCodec = "libvorbis"
       self.outputExtension = "webm"
