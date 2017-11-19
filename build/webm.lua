@@ -719,7 +719,7 @@ encode = function(region, startTime, endTime)
     end
     append(first_pass_cmdline, {
       "--ovcopts-add=flags=+pass1",
-      "-of=" .. tostring(options.output_extension),
+      "-of=" .. tostring(format.outputExtension),
       "-o=" .. tostring(get_null_path())
     })
     message("Starting first pass...")

@@ -137,7 +137,7 @@ encode = (region, startTime, endTime) ->
 		first_pass_cmdline = [arg for arg in *command]
 		append(first_pass_cmdline, {
 			"--ovcopts-add=flags=+pass1",
-			"-of=#{options.output_extension}",
+			"-of=#{format.outputExtension}",
 			"-o=#{get_null_path!}"
 		})
 		message("Starting first pass...")
