@@ -29,7 +29,7 @@ options =
 	-- Currently we have webm-vp8 (libvpx/libvorbis), webm-vp9 (libvpx-vp9/libvorbis)
 	-- and raw (rawvideo/pcm_s16le).
 	output_format: "webm-vp8"
-	twopass: true
+	twopass: false
 	-- Set the number of encoding threads, for codecs libvpx and libvpx-vp9
 	libvpx_threads: 4
 	additional_flags: ""
