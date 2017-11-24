@@ -89,3 +89,8 @@ run_subprocess = (params) ->
 		msg.verbose(res.stdout)
 		return false
 	return true
+
+calculate_scale_factor = () ->
+	baseResY = 720
+	osd_w, osd_h = mp.get_osd_size()
+	return osd_h / baseResY

@@ -42,7 +42,7 @@ local options = {
   -- Won't be applied when strict_filesize_constraint is on.
   non_strict_additional_flags = "--ovcopts-add=crf=10",
   -- The font size used in the menu. Isn't used for the notifications (started encode, finished encode etc)
-  font_size = 24,
+  font_size = 28,
   margin = 10,
   message_duration = 5
 }
@@ -153,6 +153,12 @@ run_subprocess = function(params)
     return false
   end
   return true
+end
+local calculate_scale_factor
+calculate_scale_factor = function()
+  local baseResY = 720
+  local osd_w, osd_h = mp.get_osd_size()
+  return osd_h / baseResY
 end
 local dimensions_changed = true
 local _video_dimensions = { }
@@ -787,6 +793,34 @@ do
         mp.remove_key_binding(key)
       end
     end,
+    observe_properties = function(self)
+      self.sizeCallback = function()
+        return self:draw()
+      end
+      local properties = {
+        "keepaspect",
+        "video-out-params",
+        "video-unscaled",
+        "panscan",
+        "video-zoom",
+        "video-align-x",
+        "video-pan-x",
+        "video-align-y",
+        "video-pan-y",
+        "osd-width",
+        "osd-height"
+      }
+      for _index_0 = 1, #properties do
+        local p = properties[_index_0]
+        mp.observe_property(p, self.sizeCallback)
+      end
+    end,
+    unobserve_properties = function(self)
+      if self.sizeCallback then
+        mp.unobserve_property(self.sizeCallback)
+        self.sizeCallback = nil
+      end
+    end,
     clear = function(self)
       local window_w, window_h = mp.get_osd_size()
       mp.set_osd_ass(window_w, window_h, "")
@@ -800,6 +834,7 @@ do
     end,
     show = function(self)
       self.visible = true
+      self:observe_properties()
       self:add_keybinds()
       self:prepare()
       self:clear()
@@ -807,13 +842,16 @@ do
     end,
     hide = function(self)
       self.visible = false
+      self:unobserve_properties()
       self:remove_keybinds()
       self:clear()
       return self:dispose()
     end,
     setup_text = function(self, ass)
-      ass:pos(options.margin, options.margin)
-      return ass:append("{\\fs" .. tostring(options.font_size) .. "}")
+      local scale = calculate_scale_factor()
+      local margin = options.margin * scale
+      ass:pos(margin, margin)
+      return ass:append("{\\fs" .. tostring(options.font_size * scale))
     end
   }
   _base_0.__index = _base_0
