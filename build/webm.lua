@@ -83,7 +83,7 @@ local seconds_to_path_element
 seconds_to_path_element = function(seconds, no_ms, full)
   local time_string = seconds_to_time_string(seconds, no_ms, full)
   local _
-  time_string, _ = time_string:gsub(":", "_")
+  time_string, _ = time_string:gsub(":", ".")
   return time_string
 end
 local file_exists

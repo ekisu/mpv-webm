@@ -27,7 +27,7 @@ seconds_to_time_string = (seconds, no_ms, full) ->
 seconds_to_path_element = (seconds, no_ms, full) ->
 	time_string = seconds_to_time_string(seconds, no_ms, full)
 	-- Needed for Windows (and maybe for Linux? idk)
-	time_string, _ = time_string\gsub(":", "_")
+	time_string, _ = time_string\gsub(":", ".")
 	return time_string
 
 file_exists = (name) ->
