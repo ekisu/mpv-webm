@@ -812,7 +812,7 @@ do
       }
       for _index_0 = 1, #properties do
         local p = properties[_index_0]
-        mp.observe_property(p, self.sizeCallback)
+        mp.observe_property(p, "native", self.sizeCallback)
       end
     end,
     unobserve_properties = function(self)

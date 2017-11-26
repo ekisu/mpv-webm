@@ -28,7 +28,7 @@ class Page
 			"osd-height",
 		}
 		for p in *properties
-			mp.observe_property(p, @sizeCallback)
+			mp.observe_property(p, "native", @sizeCallback)
 
 	unobserve_properties: =>
 		if @sizeCallback
