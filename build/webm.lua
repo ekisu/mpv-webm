@@ -642,7 +642,8 @@ encode = function(region, startTime, endTime)
     "--start=" .. seconds_to_time_string(startTime, false, true),
     "--end=" .. seconds_to_time_string(endTime, false, true),
     "--ovc=" .. tostring(format.videoCodec),
-    "--oac=" .. tostring(format.audioCodec)
+    "--oac=" .. tostring(format.audioCodec),
+    "--loop-file=no"
   }
   local vid = -1
   local aid = -1
