@@ -909,11 +909,13 @@ do
       end
     end,
     cancel = function(self)
+      self:hide()
       return self.callback(false, nil)
     end,
     finish = function(self)
       local region = Region()
       region:set_from_points(self.pointA, self.pointB)
+      self:hide()
       return self.callback(true, region)
     end,
     prepare = function(self)

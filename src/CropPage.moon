@@ -41,11 +41,13 @@ class CropPage extends Page
 			self\draw!
 
 	cancel: =>
+		self\hide!
 		self.callback(false, nil)
 
 	finish: =>
 		region = Region!
 		region\set_from_points(@pointA, @pointB)
+		self\hide!
 		self.callback(true, region)
 
 	prepare: =>
