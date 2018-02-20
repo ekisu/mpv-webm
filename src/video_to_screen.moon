@@ -92,6 +92,25 @@ get_video_dimensions = ->
 set_dimensions_changed = () ->
 	dimensions_changed = true
 
+monitor_dimensions = () ->
+	-- Monitor these properties, as they affect the video dimensions.
+	-- Set the dimensions-changed flag when they change.
+	properties = {
+		"keepaspect",
+		"video-out-params",
+		"video-unscaled",
+		"panscan",
+		"video-zoom",
+		"video-align-x",
+		"video-pan-x",
+		"video-align-y",
+		"video-pan-y",
+		"osd-width",
+		"osd-height",
+	}
+	for _, p in ipairs(properties)
+		mp.observe_property(p, "native", set_dimensions_changed)
+
 clamp = (min, val, max) ->
 	return min if val <= min
 	return max if val >= max
@@ -138,3 +157,15 @@ class Region
 		@y = math.min(p1.y, p2.y)
 		@w = math.abs(p1.x - p2.x)
 		@h = math.abs(p1.y - p2.y)
+
+make_fullscreen_region = () ->
+	r = Region!
+	d = get_video_dimensions!
+	a = VideoPoint!
+	b = VideoPoint!
+	{x: xa, y: ya} = d.top_left
+	a\set_from_screen(xa, ya)
+	{x: xb, y: yb} = d.bottom_right
+	b\set_from_screen(xb, yb)
+	r\set_from_points(a, b)
+	return r

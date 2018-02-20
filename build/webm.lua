@@ -252,6 +252,25 @@ local set_dimensions_changed
 set_dimensions_changed = function()
   dimensions_changed = true
 end
+local monitor_dimensions
+monitor_dimensions = function()
+  local properties = {
+    "keepaspect",
+    "video-out-params",
+    "video-unscaled",
+    "panscan",
+    "video-zoom",
+    "video-align-x",
+    "video-pan-x",
+    "video-align-y",
+    "video-pan-y",
+    "osd-width",
+    "osd-height"
+  }
+  for _, p in ipairs(properties) do
+    mp.observe_property(p, "native", set_dimensions_changed)
+  end
+end
 local clamp
 clamp = function(min, val, max)
   if val <= min then
@@ -343,6 +362,27 @@ do
   })
   _base_0.__class = _class_0
   Region = _class_0
+end
+local make_fullscreen_region
+make_fullscreen_region = function()
+  local r = Region()
+  local d = get_video_dimensions()
+  local a = VideoPoint()
+  local b = VideoPoint()
+  local xa, ya
+  do
+    local _obj_0 = d.top_left
+    xa, ya = _obj_0.x, _obj_0.y
+  end
+  a:set_from_screen(xa, ya)
+  local xb, yb
+  do
+    local _obj_0 = d.bottom_right
+    xb, yb = _obj_0.x, _obj_0.y
+  end
+  b:set_from_screen(xb, yb)
+  r:set_from_points(a, b)
+  return r
 end
 local formats = { }
 local Format
@@ -666,11 +706,13 @@ encode = function(region, startTime, endTime)
   append(command, get_playback_options())
   local filters = { }
   append(filters, format:getPreFilters())
-  if region and region:is_valid() then
-    append(filters, {
-      "crop=" .. tostring(region.w) .. ":" .. tostring(region.h) .. ":" .. tostring(region.x) .. ":" .. tostring(region.y)
-    })
+  if not region or not region:is_valid() then
+    msg.verbose("Invalid/unset region, using fullscreen one.")
+    region = make_fullscreen_region()
   end
+  append(filters, {
+    "crop=" .. tostring(region.w) .. ":" .. tostring(region.h) .. ":" .. tostring(region.x) .. ":" .. tostring(region.y)
+  })
   append(filters, get_scale_filters())
   append(filters, format:getPostFilters())
   if #filters > 0 then
@@ -917,27 +959,6 @@ do
       region:set_from_points(self.pointA, self.pointB)
       self:hide()
       return self.callback(true, region)
-    end,
-    prepare = function(self)
-      local properties = {
-        "keepaspect",
-        "video-out-params",
-        "video-unscaled",
-        "panscan",
-        "video-zoom",
-        "video-align-x",
-        "video-pan-x",
-        "video-align-y",
-        "video-pan-y",
-        "osd-width",
-        "osd-height"
-      }
-      for _, p in ipairs(properties) do
-        mp.observe_property(p, "native", set_dimensions_changed)
-      end
-    end,
-    dispose = function(self)
-      return mp.unobserve_property(set_dimensions_changed)
     end,
     draw_box = function(self, ass)
       local region = Region()
@@ -1698,6 +1719,7 @@ do
   end
   MainPage = _class_0
 end
+monitor_dimensions()
 local mainPage = MainPage()
 return mp.add_key_binding(options.keybind, "display-webm-encoder", (function()
   local _base_0 = mainPage

@@ -50,28 +50,6 @@ class CropPage extends Page
 		self\hide!
 		self.callback(true, region)
 
-	prepare: =>
-		-- Monitor these properties, as they affect the video dimensions.
-		-- Set the dimensions-changed flag when they change.
-		properties = {
-			"keepaspect",
-			"video-out-params",
-			"video-unscaled",
-			"panscan",
-			"video-zoom",
-			"video-align-x",
-			"video-pan-x",
-			"video-align-y",
-			"video-pan-y",
-			"osd-width",
-			"osd-height",
-		}
-		for _, p in ipairs(properties)
-			mp.observe_property(p, "native", set_dimensions_changed)
-
-	dispose: =>
-		mp.unobserve_property(set_dimensions_changed)
-
 	draw_box: (ass) =>
 		region = Region!
 		region\set_from_points(@pointA\to_screen!, @pointB\to_screen!)

@@ -86,8 +86,13 @@ encode = (region, startTime, endTime) ->
 	filters = {}
 	append(filters, format\getPreFilters!)
 
-	if region and region\is_valid!
-		append(filters, {"crop=#{region.w}:#{region.h}:#{region.x}:#{region.y}"})
+	-- Even if we don't have a set region, the user might have external crops applied.
+	-- Solve this by using a region that covers the entire visible screen.
+	if not region or not region\is_valid!
+		msg.verbose("Invalid/unset region, using fullscreen one.")
+		region = make_fullscreen_region!
+
+	append(filters, {"crop=#{region.w}:#{region.h}:#{region.x}:#{region.y}"})
 
 	append(filters, get_scale_filters!)
 
