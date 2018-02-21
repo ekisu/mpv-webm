@@ -446,7 +446,7 @@ do
     getPostFilters = function(self)
       return {
         "format=yuv444p16",
-        "scale=in_color_matrix=" .. self:getColorspace(),
+        "lavfi-scale=in_color_matrix=" .. self:getColorspace(),
         "format=bgr24"
       }
     end
@@ -505,7 +505,7 @@ do
       local colormatrix = mp.get_property_native("video-params/colormatrix")
       if colormatrixFilter[colormatrix] then
         append(ret, {
-          "colormatrix=" .. tostring(colormatrixFilter[colormatrix]) .. ":bt601"
+          "lavfi-colormatrix=" .. tostring(colormatrixFilter[colormatrix]) .. ":bt601"
         })
       end
       return ret
@@ -624,7 +624,7 @@ local get_scale_filters
 get_scale_filters = function()
   if options.scale_height > 0 then
     return {
-      "scale=-1:" .. tostring(options.scale_height)
+      "lavfi-scale=-1:" .. tostring(options.scale_height)
     }
   end
   return { }
@@ -667,6 +667,38 @@ get_playback_options = function()
   end
   return ret
 end
+local apply_current_filters
+apply_current_filters = function(filters)
+  local vf = mp.get_property_native("vf")
+  msg.verbose("apply_current_filters: got " .. tostring(#vf) .. " currently applied.")
+  for _index_0 = 1, #vf do
+    local _continue_0 = false
+    repeat
+      local filter = vf[_index_0]
+      msg.verbose("apply_current_filters: filter name: " .. tostring(filter['name']))
+      if filter["enabled"] == false then
+        _continue_0 = true
+        break
+      end
+      if filter["name"] == "crop" then
+        _continue_0 = true
+        break
+      end
+      local str = filter["name"]
+      local params = filter["params"] or { }
+      for k, v in pairs(params) do
+        str = str .. ":" .. tostring(k) .. "=%" .. tostring(string.len(v)) .. "%" .. tostring(v)
+      end
+      append(filters, {
+        str
+      })
+      _continue_0 = true
+    until true
+    if not _continue_0 then
+      break
+    end
+  end
+end
 local encode
 encode = function(region, startTime, endTime)
   local format = formats[options.output_format]
@@ -706,19 +738,20 @@ encode = function(region, startTime, endTime)
   append(command, get_playback_options())
   local filters = { }
   append(filters, format:getPreFilters())
+  apply_current_filters(filters)
   if not region or not region:is_valid() then
     msg.verbose("Invalid/unset region, using fullscreen one.")
     region = make_fullscreen_region()
   end
   append(filters, {
-    "crop=" .. tostring(region.w) .. ":" .. tostring(region.h) .. ":" .. tostring(region.x) .. ":" .. tostring(region.y)
+    "lavfi-crop=" .. tostring(region.w) .. ":" .. tostring(region.h) .. ":" .. tostring(region.x) .. ":" .. tostring(region.y)
   })
   append(filters, get_scale_filters())
   append(filters, format:getPostFilters())
-  if #filters > 0 then
+  for _index_0 = 1, #filters do
+    local f = filters[_index_0]
     append(command, {
-      "--vf",
-      "lavfi=[" .. tostring(table.concat(filters, ',')) .. "]"
+      "--vf-add=" .. tostring(f)
     })
   end
   append(command, format:getFlags())

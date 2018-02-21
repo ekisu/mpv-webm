@@ -27,6 +27,6 @@ class RawVideo extends Format
 				return "bt601"
 
 	getPostFilters: =>
-		{"format=yuv444p16", "scale=in_color_matrix=" .. self\getColorspace!, "format=bgr24"}
+		{"format=yuv444p16", "lavfi-scale=in_color_matrix=" .. self\getColorspace!, "format=bgr24"}
 
 formats["raw"] = RawVideo!

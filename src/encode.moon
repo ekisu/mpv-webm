@@ -11,7 +11,7 @@ get_active_tracks = ->
 
 get_scale_filters = ->
 	if options.scale_height > 0
-		return {"scale=-1:#{options.scale_height}"}
+		return {"lavfi-scale=-1:#{options.scale_height}"}
 	return {}
 
 append_property = (out, property_name, option_name) ->
@@ -43,6 +43,25 @@ get_playback_options = ->
 			append(ret, {"--sub-files-append=#{track['external-filename']}"})
 
 	return ret
+
+apply_current_filters = (filters) ->
+	vf = mp.get_property_native("vf")
+	msg.verbose("apply_current_filters: got #{#vf} currently applied.")
+	for filter in *vf
+		msg.verbose("apply_current_filters: filter name: #{filter['name']}")
+		-- This might seem like a redundant check (if not filter["enabled"] would achieve the same result),
+		-- but the enabled field isn't guaranteed to exist... and if it's nil, "not filter['enabled']"
+		-- would achieve a different outcome.
+		if filter["enabled"] == false
+			continue
+		-- We apply our own crop filter.
+		if filter["name"] == "crop"
+			continue
+		str = filter["name"]
+		params = filter["params"] or {}
+		for k, v in pairs params
+			str = str .. ":#{k}=%#{string.len(v)}%#{v}"
+		append(filters, {str})
 
 encode = (region, startTime, endTime) ->
 	format = formats[options.output_format]
@@ -86,21 +105,22 @@ encode = (region, startTime, endTime) ->
 	filters = {}
 	append(filters, format\getPreFilters!)
 
+	apply_current_filters(filters)
 	-- Even if we don't have a set region, the user might have external crops applied.
 	-- Solve this by using a region that covers the entire visible screen.
 	if not region or not region\is_valid!
 		msg.verbose("Invalid/unset region, using fullscreen one.")
 		region = make_fullscreen_region!
 
-	append(filters, {"crop=#{region.w}:#{region.h}:#{region.x}:#{region.y}"})
+	append(filters, {"lavfi-crop=#{region.w}:#{region.h}:#{region.x}:#{region.y}"})
 
 	append(filters, get_scale_filters!)
 
 	append(filters, format\getPostFilters!)
 
-	if #filters > 0
+	for f in *filters
 		append(command, {
-			"--vf", "lavfi=[#{table.concat(filters, ',')}]"
+			"--vf-add=#{f}"
 		})
 
 	append(command, format\getFlags!)
