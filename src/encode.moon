@@ -105,7 +105,9 @@ encode = (region, startTime, endTime) ->
 	filters = {}
 	append(filters, format\getPreFilters!)
 
-	apply_current_filters(filters)
+	if options.apply_current_filters
+		apply_current_filters(filters)
+	
 	-- Even if we don't have a set region, the user might have external crops applied.
 	-- Solve this by using a region that covers the entire visible screen.
 	if not region or not region\is_valid!

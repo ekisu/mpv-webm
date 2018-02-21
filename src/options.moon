@@ -30,6 +30,8 @@ options =
 	-- and raw (rawvideo/pcm_s16le).
 	output_format: "webm-vp8"
 	twopass: false
+	-- If set, applies the video filters currently used on the playback to the encode.
+	apply_current_filters: true
 	-- Set the number of encoding threads, for codecs libvpx and libvpx-vp9
 	libvpx_threads: 4
 	additional_flags: ""
