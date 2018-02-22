@@ -3,6 +3,7 @@ SOURCES := src/requires.moon
 SOURCES += src/options.moon
 SOURCES += src/util.moon
 SOURCES += src/video_to_screen.moon
+SOURCES += src/encoding_parameters.moon
 SOURCES += src/formats/base.moon
 SOURCES += src/formats/rawvideo.moon
 SOURCES += src/formats/webm.moon

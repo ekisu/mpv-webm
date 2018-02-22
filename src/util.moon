@@ -96,6 +96,6 @@ calculate_scale_factor = () ->
 	return osd_h / baseResY
 
 get_backend_location = ->
-	if options.backend_location
-		return options.backend_location
-	return options.backend
+	if not options.backend_location or string.len(options.backend_location) == 0
+		return options.backend
+	return options.backend_location

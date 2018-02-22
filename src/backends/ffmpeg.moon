@@ -21,7 +21,7 @@ class FfmpegBackend extends Backend
 
 		-- Build the base command.
 		command = {
-			options.encoder_location,
+			get_backend_location!,
 			"-y",
 			"-ss", seconds_to_time_string(params.startTime, false, true),
 			"-i", params.inputPath,

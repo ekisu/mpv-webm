@@ -41,7 +41,7 @@ class MpvBackend extends Backend
 
 		-- Build the base command.
 		command = {
-			options.encoder_location, params.inputPath,
+			get_backend_location!, params.inputPath,
 			"--start=" .. seconds_to_time_string(params.startTime, false, true),
 			"--end=" .. seconds_to_time_string(params.endTime, false, true),
 			"--ovc=#{format.videoCodec}", "--oac=#{format.audioCodec}",

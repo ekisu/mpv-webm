@@ -141,10 +141,10 @@ calculate_scale_factor = function()
 end
 local get_backend_location
 get_backend_location = function()
-  if options.backend_location then
-    return options.backend_location
+  if not options.backend_location or string.len(options.backend_location) == 0 then
+    return options.backend
   end
-  return options.backend
+  return options.backend_location
 end
 local dimensions_changed = true
 local _video_dimensions = { }
@@ -413,6 +413,100 @@ make_fullscreen_region = function()
   b:set_from_screen(xb, yb)
   r:set_from_points(a, b)
   return r
+end
+local Track
+do
+  local _class_0
+  local _base_0 = { }
+  _base_0.__index = _base_0
+  _class_0 = setmetatable({
+    __init = function(self, id, index, type)
+      self.id = id
+      self.index = index
+      self.type = type
+    end,
+    __base = _base_0,
+    __name = "Track"
+  }, {
+    __index = _base_0,
+    __call = function(cls, ...)
+      local _self_0 = setmetatable({}, _base_0)
+      cls.__init(_self_0, ...)
+      return _self_0
+    end
+  })
+  _base_0.__class = _class_0
+  Track = _class_0
+end
+local MpvFilter
+do
+  local _class_0
+  local _base_0 = { }
+  _base_0.__index = _base_0
+  _class_0 = setmetatable({
+    __init = function(self, name, params)
+      if params == nil then
+        params = { }
+      end
+      if string.sub(name, 1, 6) == "lavfi-" then
+        self.name = string.sub(name, 7, string.len(name))
+        self.lavfiCompat = true
+      else
+        self.name = name
+        self.lavfiCompat = false
+      end
+      self.params = params
+    end,
+    __base = _base_0,
+    __name = "MpvFilter"
+  }, {
+    __index = _base_0,
+    __call = function(cls, ...)
+      local _self_0 = setmetatable({}, _base_0)
+      cls.__init(_self_0, ...)
+      return _self_0
+    end
+  })
+  _base_0.__class = _class_0
+  MpvFilter = _class_0
+end
+local EncodingParameters
+do
+  local _class_0
+  local _base_0 = { }
+  _base_0.__index = _base_0
+  _class_0 = setmetatable({
+    __init = function(self)
+      self.format = nil
+      self.inputPath = nil
+      self.outputPath = nil
+      self.startTime = 0
+      self.endTime = 0
+      self.crop = nil
+      self.scale = nil
+      self.videoTrack = nil
+      self.audioTrack = nil
+      self.subTrack = nil
+      self.bitrate = 0
+      self.minBitrate = 0
+      self.maxBitrate = 0
+      self.audioBitrate = 0
+      self.twopass = false
+      self.mpvFilters = { }
+      self.flags = { }
+    end,
+    __base = _base_0,
+    __name = "EncodingParameters"
+  }, {
+    __index = _base_0,
+    __call = function(cls, ...)
+      local _self_0 = setmetatable({}, _base_0)
+      cls.__init(_self_0, ...)
+      return _self_0
+    end
+  })
+  _base_0.__class = _class_0
+  EncodingParameters = _class_0
 end
 local formats = { }
 local Format
@@ -760,7 +854,7 @@ do
     buildCommand = function(self, params)
       local format = params.format
       local command = {
-        options.encoder_location,
+        get_backend_location(),
         params.inputPath,
         "--start=" .. seconds_to_time_string(params.startTime, false, true),
         "--end=" .. seconds_to_time_string(params.endTime, false, true),
@@ -910,7 +1004,7 @@ do
     buildCommand = function(self, params)
       local format = params.format
       local command = {
-        options.encoder_location,
+        get_backend_location(),
         "-y",
         "-ss",
         seconds_to_time_string(params.startTime, false, true),
@@ -1063,100 +1157,6 @@ do
   FfmpegBackend = _class_0
 end
 backends["ffmpeg"] = FfmpegBackend()
-local Track
-do
-  local _class_0
-  local _base_0 = { }
-  _base_0.__index = _base_0
-  _class_0 = setmetatable({
-    __init = function(self, id, index, type)
-      self.id = id
-      self.index = index
-      self.type = type
-    end,
-    __base = _base_0,
-    __name = "Track"
-  }, {
-    __index = _base_0,
-    __call = function(cls, ...)
-      local _self_0 = setmetatable({}, _base_0)
-      cls.__init(_self_0, ...)
-      return _self_0
-    end
-  })
-  _base_0.__class = _class_0
-  Track = _class_0
-end
-local MpvFilter
-do
-  local _class_0
-  local _base_0 = { }
-  _base_0.__index = _base_0
-  _class_0 = setmetatable({
-    __init = function(self, name, params)
-      if params == nil then
-        params = { }
-      end
-      if string.sub(name, 1, 6) == "lavfi-" then
-        self.name = string.sub(name, 7, string.len(name))
-        self.lavfiCompat = true
-      else
-        self.name = name
-        self.lavfiCompat = false
-      end
-      self.params = params
-    end,
-    __base = _base_0,
-    __name = "MpvFilter"
-  }, {
-    __index = _base_0,
-    __call = function(cls, ...)
-      local _self_0 = setmetatable({}, _base_0)
-      cls.__init(_self_0, ...)
-      return _self_0
-    end
-  })
-  _base_0.__class = _class_0
-  MpvFilter = _class_0
-end
-local EncodingParameters
-do
-  local _class_0
-  local _base_0 = { }
-  _base_0.__index = _base_0
-  _class_0 = setmetatable({
-    __init = function(self)
-      self.format = nil
-      self.inputPath = nil
-      self.outputPath = nil
-      self.startTime = 0
-      self.endTime = 0
-      self.crop = nil
-      self.scale = nil
-      self.videoTrack = nil
-      self.audioTrack = nil
-      self.subTrack = nil
-      self.bitrate = 0
-      self.minBitrate = 0
-      self.maxBitrate = 0
-      self.audioBitrate = 0
-      self.twopass = false
-      self.mpvFilters = { }
-      self.flags = { }
-    end,
-    __base = _base_0,
-    __name = "EncodingParameters"
-  }, {
-    __index = _base_0,
-    __call = function(cls, ...)
-      local _self_0 = setmetatable({}, _base_0)
-      cls.__init(_self_0, ...)
-      return _self_0
-    end
-  })
-  _base_0.__class = _class_0
-  EncodingParameters = _class_0
-end
 local get_active_tracks
 get_active_tracks = function()
   local accepted = {
@@ -1201,7 +1201,7 @@ get_current_filters = function()
 end
 local encode
 encode = function(region, startTime, endTime)
-  local backend = backends[options.encoder]
+  local backend = backends[options.backend]
   local format = formats[options.output_format]
   local params = EncodingParameters()
   params.format = format
@@ -1285,7 +1285,7 @@ encode = function(region, startTime, endTime)
     message("Started encode... (" .. tostring(backend.name) .. ")")
     local res = backend:encode(params)
     if res then
-      return message("Encoded successfully! Saved to\\N" .. tostring(bold(res)))
+      return message("Encoded successfully! Saved to\\N" .. tostring(bold(params.outputPath)))
     else
       return message("Encode failed! Check the logs for details.")
     end
