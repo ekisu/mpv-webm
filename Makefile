@@ -6,6 +6,9 @@ SOURCES += src/video_to_screen.moon
 SOURCES += src/formats/base.moon
 SOURCES += src/formats/rawvideo.moon
 SOURCES += src/formats/webm.moon
+SOURCES += src/backends/base.moon
+SOURCES += src/backends/mpv.moon
+SOURCES += src/backends/ffmpeg.moon
 SOURCES += src/encode.moon
 SOURCES += src/Page.moon
 SOURCES += src/CropPage.moon
@@ -25,7 +28,7 @@ all: $(OUTPUT)
 
 $(OUTPUT): $(JOINEDSRC)
 	@printf 'Building %s\n' $@
-	@moonc -o $@ $< 2>/dev/null
+	@moonc -o $@ $<
 
 $(JOINEDSRC): $(SOURCES) | $(TMPDIR)
 	@printf 'Generating %s\n' $@

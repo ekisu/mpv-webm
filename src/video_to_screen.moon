@@ -122,12 +122,14 @@ clamp_point = (top_left, point, bottom_right) ->
 		y: clamp(top_left.y, point.y, bottom_right.y)
 	}
 
--- Stores a point in the video, relative to the source resolution.
-class VideoPoint
-	new: =>
-		@x = -1
-		@y = -1
+-- A point with -1 defaults.
+class Point
+	new: (x=-1, y=-1) =>
+		@x = x
+		@y = y
 
+-- Stores a point in the video, relative to the source resolution.
+class VideoPoint extends Point
 	set_from_screen: (sx, sy) =>
 		d = get_video_dimensions!
 		point = clamp_point(d.top_left, {x: sx, y: sy}, d.bottom_right)
