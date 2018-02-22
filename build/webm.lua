@@ -9,19 +9,18 @@ local options = {
   run_detached = false,
   output_template = "%F-[%s-%e]%M",
   scale_height = -1,
-  target_filesize = 0,
+  target_filesize = 2500,
   strict_filesize_constraint = false,
   strict_bitrate_multiplier = 0.95,
   strict_audio_bitrate = 64,
   output_format = "webm-vp8",
-  encoder = "ffmpeg",
-  encoder_location = "ffmpeg",
+  backend = "mpv",
+  backend_location = "",
   twopass = false,
   apply_current_filters = true,
   libvpx_threads = 4,
-  libx264_preset = "veryfast",
   additional_flags = "",
-  non_strict_additional_flags = "",
+  non_strict_additional_flags = "--ovcopts-add=crf=10",
   font_size = 28,
   margin = 10,
   message_duration = 5
@@ -139,6 +138,13 @@ calculate_scale_factor = function()
   local baseResY = 720
   local osd_w, osd_h = mp.get_osd_size()
   return osd_h / baseResY
+end
+local get_backend_location
+get_backend_location = function()
+  if options.backend_location then
+    return options.backend_location
+  end
+  return options.backend
 end
 local dimensions_changed = true
 local _video_dimensions = { }
@@ -408,100 +414,6 @@ make_fullscreen_region = function()
   r:set_from_points(a, b)
   return r
 end
-local Track
-do
-  local _class_0
-  local _base_0 = { }
-  _base_0.__index = _base_0
-  _class_0 = setmetatable({
-    __init = function(self, id, index, type)
-      self.id = id
-      self.index = index
-      self.type = type
-    end,
-    __base = _base_0,
-    __name = "Track"
-  }, {
-    __index = _base_0,
-    __call = function(cls, ...)
-      local _self_0 = setmetatable({}, _base_0)
-      cls.__init(_self_0, ...)
-      return _self_0
-    end
-  })
-  _base_0.__class = _class_0
-  Track = _class_0
-end
-local MpvFilter
-do
-  local _class_0
-  local _base_0 = { }
-  _base_0.__index = _base_0
-  _class_0 = setmetatable({
-    __init = function(self, name, params)
-      if params == nil then
-        params = { }
-      end
-      if string.sub(name, 1, 6) == "lavfi-" then
-        self.name = string.sub(name, 7, string.len(name))
-        self.lavfiCompat = true
-      else
-        self.name = name
-        self.lavfiCompat = false
-      end
-      self.params = params
-    end,
-    __base = _base_0,
-    __name = "MpvFilter"
-  }, {
-    __index = _base_0,
-    __call = function(cls, ...)
-      local _self_0 = setmetatable({}, _base_0)
-      cls.__init(_self_0, ...)
-      return _self_0
-    end
-  })
-  _base_0.__class = _class_0
-  MpvFilter = _class_0
-end
-local EncodingParameters
-do
-  local _class_0
-  local _base_0 = { }
-  _base_0.__index = _base_0
-  _class_0 = setmetatable({
-    __init = function(self)
-      self.format = nil
-      self.inputPath = nil
-      self.outputPath = nil
-      self.startTime = 0
-      self.endTime = 0
-      self.crop = nil
-      self.scale = nil
-      self.videoTrack = nil
-      self.audioTrack = nil
-      self.subTrack = nil
-      self.bitrate = 0
-      self.minBitrate = 0
-      self.maxBitrate = 0
-      self.audioBitrate = 0
-      self.twopass = false
-      self.mpvFilters = { }
-      self.flags = { }
-    end,
-    __base = _base_0,
-    __name = "EncodingParameters"
-  }, {
-    __index = _base_0,
-    __call = function(cls, ...)
-      local _self_0 = setmetatable({}, _base_0)
-      cls.__init(_self_0, ...)
-      return _self_0
-    end
-  })
-  _base_0.__class = _class_0
-  EncodingParameters = _class_0
-end
 local formats = { }
 local Format
 do
@@ -748,61 +660,6 @@ do
   WebmVP9 = _class_0
 end
 formats["webm-vp9"] = WebmVP9()
-local H264
-do
-  local _class_0
-  local _parent_0 = Format
-  local _base_0 = {
-    getPostFilters = function(self, backend)
-      return {
-        "format=yuv420p"
-      }
-    end,
-    getFlags = function(self, backend)
-      return {
-        "--ovcopts-add=preset=" .. tostring(options.libx264_preset)
-      }
-    end
-  }
-  _base_0.__index = _base_0
-  setmetatable(_base_0, _parent_0.__base)
-  _class_0 = setmetatable({
-    __init = function(self)
-      self.displayName = "H.264"
-      self.supportsTwopass = true
-      self.videoCodec = "libx264"
-      self.audioCodec = "aac"
-      self.outputExtension = "mp4"
-      self.acceptsBitrate = true
-    end,
-    __base = _base_0,
-    __name = "H264",
-    __parent = _parent_0
-  }, {
-    __index = function(cls, name)
-      local val = rawget(_base_0, name)
-      if val == nil then
-        local parent = rawget(cls, "__parent")
-        if parent then
-          return parent[name]
-        end
-      else
-        return val
-      end
-    end,
-    __call = function(cls, ...)
-      local _self_0 = setmetatable({}, _base_0)
-      cls.__init(_self_0, ...)
-      return _self_0
-    end
-  })
-  _base_0.__class = _class_0
-  if _parent_0.__inherited then
-    _parent_0.__inherited(_parent_0, _class_0)
-  end
-  H264 = _class_0
-end
-formats["hevc-h264"] = H264()
 local backends = { }
 local Backend
 do
@@ -1206,6 +1063,100 @@ do
   FfmpegBackend = _class_0
 end
 backends["ffmpeg"] = FfmpegBackend()
+local Track
+do
+  local _class_0
+  local _base_0 = { }
+  _base_0.__index = _base_0
+  _class_0 = setmetatable({
+    __init = function(self, id, index, type)
+      self.id = id
+      self.index = index
+      self.type = type
+    end,
+    __base = _base_0,
+    __name = "Track"
+  }, {
+    __index = _base_0,
+    __call = function(cls, ...)
+      local _self_0 = setmetatable({}, _base_0)
+      cls.__init(_self_0, ...)
+      return _self_0
+    end
+  })
+  _base_0.__class = _class_0
+  Track = _class_0
+end
+local MpvFilter
+do
+  local _class_0
+  local _base_0 = { }
+  _base_0.__index = _base_0
+  _class_0 = setmetatable({
+    __init = function(self, name, params)
+      if params == nil then
+        params = { }
+      end
+      if string.sub(name, 1, 6) == "lavfi-" then
+        self.name = string.sub(name, 7, string.len(name))
+        self.lavfiCompat = true
+      else
+        self.name = name
+        self.lavfiCompat = false
+      end
+      self.params = params
+    end,
+    __base = _base_0,
+    __name = "MpvFilter"
+  }, {
+    __index = _base_0,
+    __call = function(cls, ...)
+      local _self_0 = setmetatable({}, _base_0)
+      cls.__init(_self_0, ...)
+      return _self_0
+    end
+  })
+  _base_0.__class = _class_0
+  MpvFilter = _class_0
+end
+local EncodingParameters
+do
+  local _class_0
+  local _base_0 = { }
+  _base_0.__index = _base_0
+  _class_0 = setmetatable({
+    __init = function(self)
+      self.format = nil
+      self.inputPath = nil
+      self.outputPath = nil
+      self.startTime = 0
+      self.endTime = 0
+      self.crop = nil
+      self.scale = nil
+      self.videoTrack = nil
+      self.audioTrack = nil
+      self.subTrack = nil
+      self.bitrate = 0
+      self.minBitrate = 0
+      self.maxBitrate = 0
+      self.audioBitrate = 0
+      self.twopass = false
+      self.mpvFilters = { }
+      self.flags = { }
+    end,
+    __base = _base_0,
+    __name = "EncodingParameters"
+  }, {
+    __index = _base_0,
+    __call = function(cls, ...)
+      local _self_0 = setmetatable({}, _base_0)
+      cls.__init(_self_0, ...)
+      return _self_0
+    end
+  })
+  _base_0.__class = _class_0
+  EncodingParameters = _class_0
+end
 local get_active_tracks
 get_active_tracks = function()
   local accepted = {
@@ -1846,8 +1797,7 @@ do
       local formatIds = {
         "webm-vp8",
         "webm-vp9",
-        "raw",
-        "hevc-h264"
+        "raw"
       }
       local formatOpts = {
         possibleValues = (function()
