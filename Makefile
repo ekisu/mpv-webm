@@ -28,7 +28,7 @@ all: $(OUTPUT)
 
 $(OUTPUT): $(JOINEDSRC)
 	@printf 'Building %s\n' $@
-	@moonc -o $@ $<
+	@moonc -o $@ $< 2>/dev/null
 
 $(JOINEDSRC): $(SOURCES) | $(TMPDIR)
 	@printf 'Generating %s\n' $@
