@@ -2,8 +2,6 @@ class FfmpegBackend extends Backend
 	new: =>
 		@name = "ffmpeg"
 
-	solve
-
 	-- Turn `MpvFilter`s into command line options.
 	solveFilters: (filters) =>
 		solved = {}
