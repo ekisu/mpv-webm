@@ -759,28 +759,22 @@ local Backend
 do
   local _class_0
   local _base_0 = {
-    encode = function(self, params)
+    encode = function(self, params, detached)
       msg.verbose("Building command from params: ", utils.to_string(params))
       local command = self:buildCommand(params)
       if command then
         msg.info("Encoding to", params.outputPath)
         msg.verbose("Command line:", table.concat(command, " "))
+        if detached then
+          utils.subprocess_detached({
+            args = command
+          })
+          return true
+        end
         return run_subprocess({
           args = command,
           cancellable = false
         })
-      end
-      return false
-    end,
-    encodeDetached = function(self, params)
-      local command = self:buildCommand(params)
-      if command then
-        msg.info("Encoding to", params.outputPath)
-        msg.verbose("Command line:", table.concat(command, " "))
-        utils.subprocess_detached({
-          args = command
-        })
-        return true
       end
       return false
     end,
@@ -1273,7 +1267,7 @@ encode = function(region, startTime, endTime)
   local out_path = utils.join_path(dir, formatted_filename)
   params.outputPath = out_path
   if options.run_detached then
-    local res = backend:encodeDetached(params)
+    local res = backend:encode(params, true)
     if res then
       return message("Started encode, process was detached. (" .. tostring(backend.name) .. ")")
     else
@@ -1281,7 +1275,7 @@ encode = function(region, startTime, endTime)
     end
   else
     message("Started encode... (" .. tostring(backend.name) .. ")")
-    local res = backend:encode(params)
+    local res = backend:encode(params, false)
     if res then
       return message("Encoded successfully! Saved to\\N" .. tostring(bold(params.outputPath)))
     else

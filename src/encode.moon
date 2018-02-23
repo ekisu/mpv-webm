@@ -107,14 +107,14 @@ encode = (region, startTime, endTime) ->
 	params.outputPath = out_path
 
 	if options.run_detached
-		res = backend\encodeDetached(params)
+		res = backend\encode(params, true)
 		if res
 			message("Started encode, process was detached. (#{backend.name})")
 		else
 			message("Encode failed! Couldn't start encode. Check the logs for details.")
 	else
 		message("Started encode... (#{backend.name})")
-		res = backend\encode(params)
+		res = backend\encode(params, false)
 		if res
 			message("Encoded successfully! Saved to\\N#{bold(params.outputPath)}")
 		else
