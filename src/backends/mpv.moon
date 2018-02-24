@@ -29,10 +29,7 @@ class MpvBackend extends Backend
 			str = filter.lavfiCompat and "lavfi-" or ""
 			str ..= filter.name .. "="
 			for k, v in pairs filter.params
-				if tonumber(k) == nil
-					str ..= "#{k}=%#{string.len(v)}%#{v}:"
-				else
-					str ..= "#{v}:"
+				str ..= "#{k}=%#{string.len(v)}%#{v}:"
 			solved[#solved+1] = string.sub(str, 0, string.len(str) - 1)
 		return solved
 
