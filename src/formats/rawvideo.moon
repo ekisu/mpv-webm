@@ -28,9 +28,9 @@ class RawVideo extends Format
 
 	getPostFilters: (backend) =>
 		{
-			MpvFilter("format", {"fmt": "yuv444p16"}),
-			MpvFilter("lavfi-scale", {"in_color_matrix": self\getColorspace!}),
-			MpvFilter("format", {"fmt": "bgr24"})
+			MpvFilter("format", { "fmt": "yuv444p16" }),
+			MpvFilter("lavfi-scale", { "in_color_matrix": self\getColorspace! }),
+			MpvFilter("format", { "fmt": "bgr24" })
 		}
 
 formats["raw"] = RawVideo!

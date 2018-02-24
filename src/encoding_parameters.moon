@@ -101,6 +101,6 @@ class EncodingParameters
 		-- applied to the encoding, or attempted to.
 		@mpvFilters = {}
 
-		-- {Table}
+		-- {string[]}
 		-- Additional (backend-specific) flags.
 		@flags = {}

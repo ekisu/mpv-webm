@@ -19,7 +19,9 @@ class WebmVP8 extends Format
 		colormatrix = mp.get_property_native("video-params/colormatrix")
 		if colormatrixFilter[colormatrix]
 			append(ret, {
-				MpvFilter("lavfi-colormatrix", {"@0": "#{colormatrixFilter[colormatrix]}", "@1": "bt601"})
+				MpvFilter("lavfi-colormatrix",
+					"@0": colormatrixFilter[colormatrix],
+					"@1": "bt601")
 			})
 		return ret
 

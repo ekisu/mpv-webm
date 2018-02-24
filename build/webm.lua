@@ -475,12 +475,12 @@ do
       if params == nil then
         params = { }
       end
+      self.lavfiCompat = not self.__class.isBuiltin(name)
       if string.sub(name, 1, 6) == "lavfi-" then
         self.name = string.sub(name, 7, string.len(name))
       else
         self.name = name
       end
-      self.lavfiCompat = not self.__class:isBuiltin(name)
       self.params = params
     end,
     __base = _base_0,
@@ -666,7 +666,8 @@ do
       if colormatrixFilter[colormatrix] then
         append(ret, {
           MpvFilter("lavfi-colormatrix", {
-            ["@0"] = tostring(colormatrixFilter[colormatrix]),
+            ["@0"] = colormatrixFilter[colormatrix]
+          }, {
             ["@1"] = "bt601"
           })
         })
