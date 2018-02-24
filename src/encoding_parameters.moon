@@ -7,17 +7,24 @@ class Track
 
 -- Represents an mpv video/audio filter.
 class MpvFilter
+	@isBuiltin: (name) ->
+		-- mpv --vf=help
+		(name == "format" or
+		name == "sub" or
+		name == "convert" or
+		name == "d3d11vpp" or
+		-- mpv --af=help
+		name == "lavcac3enc" or
+		name == "lavrresample" or
+		name == "rubberband" or
+		name == "scaletempo")
+
 	new: (name, params={}) =>
-		-- Note: You don't need to specify the lavfi- prefix to
-		-- use valid lavfi filters, it's only used as a disambiguation
-		-- against mpv's builtin filters. So not all compatible filters
-		-- will be caught here.
 		if string.sub(name,1,6)=="lavfi-" then
 			@name = string.sub(name,7,string.len(name))
-			@lavfiCompat = true
 		else
 			@name = name
-			@lavfiCompat = false
+		@lavfiCompat = not @@isBuiltin name
 		@params = params
 
 class EncodingParameters
