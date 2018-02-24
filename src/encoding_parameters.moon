@@ -20,11 +20,11 @@ class MpvFilter
 		name == "scaletempo")
 
 	new: (name, params={}) =>
+		@lavfiCompat = not @@.isBuiltin(name)
 		if string.sub(name,1,6)=="lavfi-" then
 			@name = string.sub(name,7,string.len(name))
 		else
 			@name = name
-		@lavfiCompat = not @@isBuiltin name
 		@params = params
 
 class EncodingParameters
