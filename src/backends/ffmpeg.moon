@@ -9,8 +9,20 @@ class FfmpegBackend extends Backend
 			if not filter.lavfiCompat
 				continue
 			str = filter.name .. "="
+			ordered_params = {}
+			highest_n = 0
 			for k, v in pairs filter.params
-				str ..= "#{v}:"
+				-- @n keys dictate the order of keyless params. Sort them here.
+				param_n = tonumber(string.match(k, "^@(%d+)$"))
+				if param_n ~= nil
+					ordered_params[param_n] = v
+					if param_n > highest_n
+						highest_n = param_n
+				else
+					str ..= "#{k}=#{v}:"
+			for i = 0, highest_n
+				if ordered_params[i] ~= nil
+					str ..= "#{ordered_params[i]}:"
 			solved[#solved+1] = string.sub(str, 0, string.len(str) - 1)
 		return solved
 

@@ -4,25 +4,52 @@ local msg = require("mp.msg")
 local utils = require("mp.utils")
 local mpopts = require("mp.options")
 local options = {
-  keybind = "W",
-  output_directory = "",
-  run_detached = false,
-  output_template = "%F-[%s-%e]%M",
-  scale_height = -1,
-  target_filesize = 2500,
-  strict_filesize_constraint = false,
-  strict_bitrate_multiplier = 0.95,
-  strict_audio_bitrate = 64,
-  output_format = "webm-vp8",
-  backend = "mpv",
-  backend_location = "",
-  twopass = false,
-  apply_current_filters = true,
-  libvpx_threads = 4,
-  additional_flags = "",
-  non_strict_additional_flags = "--ovcopts-add=crf=10",
-  font_size = 28,
-  margin = 10,
+  -- Defaults to shift+w
+  keybind = "W"
+  -- If empty, saves on the same directory of the playing video.
+  -- A starting "~" will be replaced by the home dir.
+  output_directory = ""
+  run_detached = false
+  -- Template string for the output file
+  -- %f - Filename, with extension
+  -- %F - Filename, without extension
+  -- %T - Media title, if it exists, or filename, with extension (useful for some streams, such as YouTube).
+  -- %s, %e - Start and end time, with milliseconds
+  -- %S, %E - Start and time, without milliseconds
+  -- %M - "-audio", if audio is enabled, empty otherwise
+  output_template = "%F-[%s-%e]%M"
+  -- Scale video to a certain height, keeping the aspect ratio. -1 disables it.
+  scale_height = -1
+  -- Target filesize, in kB.
+  target_filesize = 2500
+  -- If true, will use stricter flags to ensure the resulting file doesn't
+  -- overshoot the target filesize. Not recommended, as constrained quality
+  -- mode should work well, unless you're really having trouble hitting
+  -- the target size.
+  strict_filesize_constraint = false
+  strict_bitrate_multiplier = 0.95
+  -- In kilobits.
+  strict_audio_bitrate = 64
+  -- Sets the output format, from a few predefined ones.
+  -- Currently we have webm-vp8 (libvpx/libvorbis), webm-vp9 (libvpx-vp9/libvorbis)
+  -- and raw (rawvideo/pcm_s16le).
+  output_format = "webm-vp8"
+  -- The encoding backend to use. Currently supports mpv and ffmpeg.
+  backend = "mpv"
+  -- Location to the backend executable. Leave blank to have this fall back on the backend option.
+  backend_location = ""
+  twopass = false
+  -- If set, applies the video filters currently used on the playback to the encode.
+  apply_current_filters = true
+  -- Set the number of encoding threads, for codecs libvpx and libvpx-vp9
+  libvpx_threads = 4
+  additional_flags = ""
+  -- Useful for flags that may impact output filesize, such as crf, qmin, qmax etc
+  -- Won't be applied when strict_filesize_constraint is on.
+  non_strict_additional_flags = "--ovcopts-add=crf=10"
+  -- The font size used in the menu. Isn't used for the notifications (started encode, finished encode etc)
+  font_size = 28
+  margin = 10
   message_duration = 5
 }
 mpopts.read_options(options)
@@ -450,11 +477,10 @@ do
       end
       if string.sub(name, 1, 6) == "lavfi-" then
         self.name = string.sub(name, 7, string.len(name))
-        self.lavfiCompat = true
       else
         self.name = name
-        self.lavfiCompat = false
       end
+      self.lavfiCompat = not self.__class:isBuiltin(name)
       self.params = params
     end,
     __base = _base_0,
@@ -468,6 +494,10 @@ do
     end
   })
   _base_0.__class = _class_0
+  local self = _class_0
+  self.isBuiltin = function(name)
+    return (name == "format" or name == "sub" or name == "convert" or name == "d3d11vpp" or name == "lavcac3enc" or name == "lavrresample" or name == "rubberband" or name == "scaletempo")
+  end
   MpvFilter = _class_0
 end
 local EncodingParameters
@@ -570,13 +600,13 @@ do
     getPostFilters = function(self, backend)
       return {
         MpvFilter("format", {
-          "yuv444p16"
+          ["fmt"] = "yuv444p16"
         }),
         MpvFilter("lavfi-scale", {
           ["in_color_matrix"] = self:getColorspace()
         }),
         MpvFilter("format", {
-          "bgr24"
+          ["fmt"] = "bgr24"
         })
       }
     end
@@ -835,11 +865,7 @@ do
         local str = filter.lavfiCompat and "lavfi-" or ""
         str = str .. (filter.name .. "=")
         for k, v in pairs(filter.params) do
-          if tonumber(k) == nil then
-            str = str .. tostring(k) .. "=%" .. tostring(string.len(v)) .. "%" .. tostring(v) .. ":"
-          else
-            str = str .. tostring(v) .. ":"
-          end
+          str = str .. tostring(k) .. "=%" .. tostring(string.len(v)) .. "%" .. tostring(v) .. ":"
         end
         solved[#solved + 1] = string.sub(str, 0, string.len(str) - 1)
       end
@@ -983,8 +1009,23 @@ do
             break
           end
           local str = filter.name .. "="
+          local ordered_params = { }
+          local highest_n = 0
           for k, v in pairs(filter.params) do
-            str = str .. tostring(v) .. ":"
+            local param_n = tonumber(string.match(k, "^@(%d+)$"))
+            if param_n ~= nil then
+              ordered_params[param_n] = v
+              if param_n > highest_n then
+                highest_n = param_n
+              end
+            else
+              str = str .. tostring(k) .. "=" .. tostring(v) .. ":"
+            end
+          end
+          for i = 0, highest_n do
+            if ordered_params[i] ~= nil then
+              str = str .. tostring(ordered_params[i]) .. ":"
+            end
           end
           solved[#solved + 1] = string.sub(str, 0, string.len(str) - 1)
           _continue_0 = true
