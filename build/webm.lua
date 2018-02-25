@@ -886,7 +886,7 @@ do
       append(command, {
         "--vid=" .. (params.videoTrack ~= nil and tostring(params.videoTrack.id) or "no"),
         "--aid=" .. (params.audioTrack ~= nil and tostring(params.audioTrack.id) or "no"),
-        "--sid=" .. (params.subTrackId ~= nil and tostring(params.subTrack.id) or "no")
+        "--sid=" .. (params.subTrack ~= nil and tostring(params.subTrack.id) or "no")
       })
       append(command, self:getPlaybackOptions())
       local filters = { }
@@ -1037,6 +1037,37 @@ do
       end
       return solved
     end,
+    escapeFilterParameter = function(self, parameter)
+      parameter = parameter:gsub("([\\:'])", "\\%1")
+      parameter = parameter:gsub("([\\'%[%],;])", "\\%1")
+      return parameter
+    end,
+    getHardsubFilters = function(self, params)
+      if not params.subTrack then
+        return { }
+      end
+      local out = "subtitles="
+      local subFile = ""
+      local subId = nil
+      if params.subTrack.data["external"] then
+        subFile = params.subTrack.data["external-filename"]
+      else
+        subFile = params.inputPath
+        subId = params.subTrack.id - 1
+      end
+      out = out .. ("f=" .. self:escapeFilterParameter(subFile))
+      if subIndex ~= nil then
+        out = out .. ":si=" .. tostring(subId)
+      end
+      local subOverride = mp.get_property("sub-ass-override")
+      local subForceStyle = mp.get_property("sub-ass-force-style")
+      if subOverride ~= "no" and subForceStyle ~= "" then
+        out = out .. (":force_style=" .. self:escapeFilterParameter(subForceStyle))
+      end
+      return {
+        out
+      }
+    end,
     buildCommand = function(self, params)
       local format = params.format
       local command = {
@@ -1061,12 +1092,6 @@ do
           "0:" .. tostring(params.audioTrack.index)
         })
       end
-      if params.subTrack ~= nil and params.subTrack.index ~= nil then
-        append(command, {
-          "-map",
-          "0:" .. tostring(params.subTrack.index)
-        })
-      end
       append(command, {
         "-c:v",
         tostring(format.videoCodec),
@@ -1082,6 +1107,7 @@ do
       if params.scale then
         filters[#filters + 1] = "scale=" .. tostring(params.scale.x) .. ":" .. tostring(params.scale.y)
       end
+      append(filters, self:getHardsubFilters(params))
       append(filters, self:solveFilters(format:getPostFilters(self)))
       append(command, {
         "-vf",

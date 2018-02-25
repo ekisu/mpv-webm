@@ -26,6 +26,39 @@ class FfmpegBackend extends Backend
 			solved[#solved+1] = string.sub(str, 0, string.len(str) - 1)
 		return solved
 
+	escapeFilterParameter: (parameter) =>
+		-- https://ffmpeg.org/ffmpeg-filters.html#Notes-on-filtergraph-escaping
+		-- This is really annoying. I wish it supported the %len%text syntax like mpv does.
+		-- First level: escape any of ':\ with a leading \
+		parameter = parameter\gsub("([\\:'])", "\\%1")
+		-- Second level: escape any of \'[],; with a leading \. The % signs escape the brackets in the pattern.
+		parameter = parameter\gsub("([\\'%[%],;])", "\\%1")
+		return parameter
+
+	getHardsubFilters: (params) =>
+		if not params.subTrack
+			return {}
+
+		out = "subtitles="
+		subFile = ""
+		subId = nil
+		if params.subTrack.data["external"]
+			subFile = params.subTrack.data["external-filename"]
+		else
+			subFile = params.inputPath
+			subId = params.subTrack.id - 1 -- It's 0-indexed.
+
+		out ..= "f=" .. self\escapeFilterParameter(subFile)
+		if subIndex != nil
+			out ..= ":si=#{subId}"
+		
+		subOverride = mp.get_property("sub-ass-override")
+		subForceStyle = mp.get_property("sub-ass-force-style")
+		if subOverride != "no" and subForceStyle != ""
+			out ..= ":force_style=" .. self\escapeFilterParameter(subForceStyle)
+
+		return {out}
+
 	buildCommand: (params) =>
 		format = params.format
 
@@ -47,10 +80,6 @@ class FfmpegBackend extends Backend
 			append(command, {
 				"-map", "0:" .. tostring(params.audioTrack.index)
 			})
-		if params.subTrack ~= nil and params.subTrack.index ~= nil
-			append(command, {
-				"-map", "0:" .. tostring(params.subTrack.index)
-			})
 
 		-- Append our video/audio codecs.
 		append(command, {
@@ -67,6 +96,10 @@ class FfmpegBackend extends Backend
 			filters[#filters+1] = "crop=#{params.crop.w}:#{params.crop.h}:#{params.crop.x}:#{params.crop.y}"
 		if params.scale
 			filters[#filters+1] = "scale=#{params.scale.x}:#{params.scale.y}"
+
+		-- Hardsubbing with ffmpeg is done with a filter.
+		append(filters, self\getHardsubFilters(params))
+
 		append(filters, self\solveFilters(format\getPostFilters self))
 		-- Then append them to the command.
 		append(command, {
