@@ -20,8 +20,8 @@ class WebmVP8 extends Format
 		if colormatrixFilter[colormatrix]
 			append(ret, {
 				MpvFilter("lavfi-colormatrix",
-					"@0": colormatrixFilter[colormatrix],
-					"@1": "bt601")
+					{ "src": colormatrixFilter[colormatrix],
+					  "dst": "bt601" })
 			})
 		return ret
 

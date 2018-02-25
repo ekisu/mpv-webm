@@ -98,6 +98,7 @@ class FfmpegBackend extends Backend
 			first_pass_cmdline = [arg for arg in *command]
 			append(first_pass_cmdline, {
 				"-pass", "1",
+				"-f", format.outputExtension,
 				get_null_path!
 			})
 			message("Starting first pass...")

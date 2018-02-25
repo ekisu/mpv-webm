@@ -666,9 +666,8 @@ do
       if colormatrixFilter[colormatrix] then
         append(ret, {
           MpvFilter("lavfi-colormatrix", {
-            ["@0"] = colormatrixFilter[colormatrix]
-          }, {
-            ["@1"] = "bt601"
+            ["src"] = colormatrixFilter[colormatrix],
+            ["dst"] = "bt601"
           })
         })
       end
@@ -1134,6 +1133,8 @@ do
         append(first_pass_cmdline, {
           "-pass",
           "1",
+          "-f",
+          format.outputExtension,
           get_null_path()
         })
         message("Starting first pass...")
