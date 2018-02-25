@@ -6,7 +6,7 @@ get_active_tracks = ->
 	active = {}
 	for _, track in ipairs mp.get_property_native("track-list")
 		if track["selected"] and accepted[track["type"]]
-			active[#active + 1] = Track(track["id"], track["ff-index"], track["type"])
+			active[#active + 1] = Track(track["id"], track["ff-index"], track["type"], track)
 	return active
 
 get_current_filters = ->

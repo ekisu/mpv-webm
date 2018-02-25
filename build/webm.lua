@@ -447,10 +447,11 @@ do
   local _base_0 = { }
   _base_0.__index = _base_0
   _class_0 = setmetatable({
-    __init = function(self, id, index, type)
+    __init = function(self, id, index, type, data)
       self.id = id
       self.index = index
       self.type = type
+      self.data = data
     end,
     __base = _base_0,
     __name = "Track"
@@ -1202,7 +1203,7 @@ get_active_tracks = function()
   local active = { }
   for _, track in ipairs(mp.get_property_native("track-list")) do
     if track["selected"] and accepted[track["type"]] then
-      active[#active + 1] = Track(track["id"], track["ff-index"], track["type"])
+      active[#active + 1] = Track(track["id"], track["ff-index"], track["type"], track)
     end
   end
   return active

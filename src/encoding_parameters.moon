@@ -1,9 +1,10 @@
 -- Represents a video/audio/subtitle track.
 class Track
-	new: (id, index, type) =>
+	new: (id, index, type, data) =>
 		@id = id
 		@index = index
 		@type = type
+		@data = data
 
 -- Represents an mpv video/audio filter.
 class MpvFilter
