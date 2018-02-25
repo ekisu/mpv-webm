@@ -13,10 +13,10 @@ class Format
 
 	-- Filters that should be applied before the transformations we do (crop, scale)
 	-- Should be a array of ffmpeg filters e.g. {"colormatrix=bt709", "sub"}.
-	getPreFilters: => {}
+	getPreFilters: (backend) => {}
 
 	-- Similar to getPreFilters, but after our transformations.
-	getPostFilters: => {}
+	getPostFilters: (backend) => {}
 
 	-- A list of flags, to be appended to the command line.
-	getFlags: => {}
+	getFlags: (backend) => {}

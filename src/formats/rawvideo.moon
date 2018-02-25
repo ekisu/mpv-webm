@@ -26,7 +26,11 @@ class RawVideo extends Format
 				msg.info("Warning, unknown colorspace #{csp} detected, using bt.601.")
 				return "bt601"
 
-	getPostFilters: =>
-		{"format=yuv444p16", "lavfi-scale=in_color_matrix=" .. self\getColorspace!, "format=bgr24"}
+	getPostFilters: (backend) =>
+		{
+			MpvFilter("format", { "fmt": "yuv444p16" }),
+			MpvFilter("lavfi-scale", { "in_color_matrix": self\getColorspace! }),
+			MpvFilter("format", { "fmt": "bgr24" })
+		}
 
 formats["raw"] = RawVideo!

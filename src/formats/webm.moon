@@ -7,7 +7,7 @@ class WebmVP8 extends Format
 		@outputExtension = "webm"
 		@acceptsBitrate = true
 
-	getPreFilters: =>
+	getPreFilters: (backend) =>
 		-- colormatrix filter
 		colormatrixFilter =
 			"bt.709": "bt709"
@@ -19,14 +19,18 @@ class WebmVP8 extends Format
 		colormatrix = mp.get_property_native("video-params/colormatrix")
 		if colormatrixFilter[colormatrix]
 			append(ret, {
-				"lavfi-colormatrix=#{colormatrixFilter[colormatrix]}:bt601"
+				MpvFilter("lavfi-colormatrix",
+					"@0": colormatrixFilter[colormatrix],
+					"@1": "bt601")
 			})
 		return ret
 
-	getFlags: =>
-		{
-			"--ovcopts-add=threads=#{options.libvpx_threads}"
-		}
+	getFlags: (backend) =>
+		switch backend.name
+			when "mpv"
+				return {"--ovcopts-add=threads=#{options.libvpx_threads}"}
+			when "ffmpeg"
+				return {"-threads", options.libvpx_threads}
 
 formats["webm-vp8"] = WebmVP8!
 
@@ -39,9 +43,11 @@ class WebmVP9 extends Format
 		@outputExtension = "webm"
 		@acceptsBitrate = true
 
-	getFlags: =>
-		{
-			"--ovcopts-add=threads=#{options.libvpx_threads}"
-		}
+	getFlags: (backend) =>
+		switch backend.name
+			when "mpv"
+				return {"--ovcopts-add=threads=#{options.libvpx_threads}"}
+			when "ffmpeg"
+				return {"-threads", options.libvpx_threads}
 
 formats["webm-vp9"] = WebmVP9!

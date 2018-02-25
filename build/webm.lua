@@ -34,6 +34,10 @@ local options = {
   -- Currently we have webm-vp8 (libvpx/libvorbis), webm-vp9 (libvpx-vp9/libvorbis)
   -- and raw (rawvideo/pcm_s16le).
   output_format = "webm-vp8",
+  -- The encoding backend to use. Currently supports mpv and ffmpeg.
+  backend = "mpv",
+  -- Location to the backend executable. Leave blank to have this fall back on the backend option.
+  backend_location = "",
   twopass = false,
   -- If set, applies the video filters currently used on the playback to the encode.
   apply_current_filters = true,
@@ -161,6 +165,13 @@ calculate_scale_factor = function()
   local baseResY = 720
   local osd_w, osd_h = mp.get_osd_size()
   return osd_h / baseResY
+end
+local get_backend_location
+get_backend_location = function()
+  if not options.backend_location or string.len(options.backend_location) == 0 then
+    return options.backend
+  end
+  return options.backend_location
 end
 local dimensions_changed = true
 local _video_dimensions = { }
@@ -290,9 +301,39 @@ clamp_point = function(top_left, point, bottom_right)
     y = clamp(top_left.y, point.y, bottom_right.y)
   }
 end
+local Point
+do
+  local _class_0
+  local _base_0 = { }
+  _base_0.__index = _base_0
+  _class_0 = setmetatable({
+    __init = function(self, x, y)
+      if x == nil then
+        x = -1
+      end
+      if y == nil then
+        y = -1
+      end
+      self.x = x
+      self.y = y
+    end,
+    __base = _base_0,
+    __name = "Point"
+  }, {
+    __index = _base_0,
+    __call = function(cls, ...)
+      local _self_0 = setmetatable({}, _base_0)
+      cls.__init(_self_0, ...)
+      return _self_0
+    end
+  })
+  _base_0.__class = _class_0
+  Point = _class_0
+end
 local VideoPoint
 do
   local _class_0
+  local _parent_0 = Point
   local _base_0 = {
     set_from_screen = function(self, sx, sy)
       local d = get_video_dimensions()
@@ -312,15 +353,26 @@ do
     end
   }
   _base_0.__index = _base_0
+  setmetatable(_base_0, _parent_0.__base)
   _class_0 = setmetatable({
-    __init = function(self)
-      self.x = -1
-      self.y = -1
+    __init = function(self, ...)
+      return _class_0.__parent.__init(self, ...)
     end,
     __base = _base_0,
-    __name = "VideoPoint"
+    __name = "VideoPoint",
+    __parent = _parent_0
   }, {
-    __index = _base_0,
+    __index = function(cls, name)
+      local val = rawget(_base_0, name)
+      if val == nil then
+        local parent = rawget(cls, "__parent")
+        if parent then
+          return parent[name]
+        end
+      else
+        return val
+      end
+    end,
     __call = function(cls, ...)
       local _self_0 = setmetatable({}, _base_0)
       cls.__init(_self_0, ...)
@@ -328,6 +380,9 @@ do
     end
   })
   _base_0.__class = _class_0
+  if _parent_0.__inherited then
+    _parent_0.__inherited(_parent_0, _class_0)
+  end
   VideoPoint = _class_0
 end
 local Region
@@ -386,18 +441,115 @@ make_fullscreen_region = function()
   r:set_from_points(a, b)
   return r
 end
+local Track
+do
+  local _class_0
+  local _base_0 = { }
+  _base_0.__index = _base_0
+  _class_0 = setmetatable({
+    __init = function(self, id, index, type)
+      self.id = id
+      self.index = index
+      self.type = type
+    end,
+    __base = _base_0,
+    __name = "Track"
+  }, {
+    __index = _base_0,
+    __call = function(cls, ...)
+      local _self_0 = setmetatable({}, _base_0)
+      cls.__init(_self_0, ...)
+      return _self_0
+    end
+  })
+  _base_0.__class = _class_0
+  Track = _class_0
+end
+local MpvFilter
+do
+  local _class_0
+  local _base_0 = { }
+  _base_0.__index = _base_0
+  _class_0 = setmetatable({
+    __init = function(self, name, params)
+      if params == nil then
+        params = { }
+      end
+      self.lavfiCompat = not self.__class.isBuiltin(name)
+      if string.sub(name, 1, 6) == "lavfi-" then
+        self.name = string.sub(name, 7, string.len(name))
+      else
+        self.name = name
+      end
+      self.params = params
+    end,
+    __base = _base_0,
+    __name = "MpvFilter"
+  }, {
+    __index = _base_0,
+    __call = function(cls, ...)
+      local _self_0 = setmetatable({}, _base_0)
+      cls.__init(_self_0, ...)
+      return _self_0
+    end
+  })
+  _base_0.__class = _class_0
+  local self = _class_0
+  self.isBuiltin = function(name)
+    return (name == "format" or name == "sub" or name == "convert" or name == "d3d11vpp" or name == "lavcac3enc" or name == "lavrresample" or name == "rubberband" or name == "scaletempo")
+  end
+  MpvFilter = _class_0
+end
+local EncodingParameters
+do
+  local _class_0
+  local _base_0 = { }
+  _base_0.__index = _base_0
+  _class_0 = setmetatable({
+    __init = function(self)
+      self.format = nil
+      self.inputPath = nil
+      self.outputPath = nil
+      self.startTime = 0
+      self.endTime = 0
+      self.crop = nil
+      self.scale = nil
+      self.videoTrack = nil
+      self.audioTrack = nil
+      self.subTrack = nil
+      self.bitrate = 0
+      self.minBitrate = 0
+      self.maxBitrate = 0
+      self.audioBitrate = 0
+      self.twopass = false
+      self.mpvFilters = { }
+      self.flags = { }
+    end,
+    __base = _base_0,
+    __name = "EncodingParameters"
+  }, {
+    __index = _base_0,
+    __call = function(cls, ...)
+      local _self_0 = setmetatable({}, _base_0)
+      cls.__init(_self_0, ...)
+      return _self_0
+    end
+  })
+  _base_0.__class = _class_0
+  EncodingParameters = _class_0
+end
 local formats = { }
 local Format
 do
   local _class_0
   local _base_0 = {
-    getPreFilters = function(self)
+    getPreFilters = function(self, backend)
       return { }
     end,
-    getPostFilters = function(self)
+    getPostFilters = function(self, backend)
       return { }
     end,
-    getFlags = function(self)
+    getFlags = function(self, backend)
       return { }
     end
   }
@@ -445,11 +597,17 @@ do
         return "bt601"
       end
     end,
-    getPostFilters = function(self)
+    getPostFilters = function(self, backend)
       return {
-        "format=yuv444p16",
-        "lavfi-scale=in_color_matrix=" .. self:getColorspace(),
-        "format=bgr24"
+        MpvFilter("format", {
+          ["fmt"] = "yuv444p16"
+        }),
+        MpvFilter("lavfi-scale", {
+          ["in_color_matrix"] = self:getColorspace()
+        }),
+        MpvFilter("format", {
+          ["fmt"] = "bgr24"
+        })
       }
     end
   }
@@ -497,7 +655,7 @@ do
   local _class_0
   local _parent_0 = Format
   local _base_0 = {
-    getPreFilters = function(self)
+    getPreFilters = function(self, backend)
       local colormatrixFilter = {
         ["bt.709"] = "bt709",
         ["bt.2020"] = "bt2020",
@@ -507,15 +665,27 @@ do
       local colormatrix = mp.get_property_native("video-params/colormatrix")
       if colormatrixFilter[colormatrix] then
         append(ret, {
-          "lavfi-colormatrix=" .. tostring(colormatrixFilter[colormatrix]) .. ":bt601"
+          MpvFilter("lavfi-colormatrix", {
+            ["@0"] = colormatrixFilter[colormatrix]
+          }, {
+            ["@1"] = "bt601"
+          })
         })
       end
       return ret
     end,
-    getFlags = function(self)
-      return {
-        "--ovcopts-add=threads=" .. tostring(options.libvpx_threads)
-      }
+    getFlags = function(self, backend)
+      local _exp_0 = backend.name
+      if "mpv" == _exp_0 then
+        return {
+          "--ovcopts-add=threads=" .. tostring(options.libvpx_threads)
+        }
+      elseif "ffmpeg" == _exp_0 then
+        return {
+          "-threads",
+          options.libvpx_threads
+        }
+      end
     end
   }
   _base_0.__index = _base_0
@@ -562,10 +732,18 @@ do
   local _class_0
   local _parent_0 = Format
   local _base_0 = {
-    getFlags = function(self)
-      return {
-        "--ovcopts-add=threads=" .. tostring(options.libvpx_threads)
-      }
+    getFlags = function(self, backend)
+      local _exp_0 = backend.name
+      if "mpv" == _exp_0 then
+        return {
+          "--ovcopts-add=threads=" .. tostring(options.libvpx_threads)
+        }
+      elseif "ffmpeg" == _exp_0 then
+        return {
+          "-threads",
+          options.libvpx_threads
+        }
+      end
     end
   }
   _base_0.__index = _base_0
@@ -607,6 +785,412 @@ do
   WebmVP9 = _class_0
 end
 formats["webm-vp9"] = WebmVP9()
+local backends = { }
+local Backend
+do
+  local _class_0
+  local _base_0 = {
+    encode = function(self, params, detached)
+      msg.verbose("Building command from params: ", utils.to_string(params))
+      local command = self:buildCommand(params)
+      if command then
+        msg.info("Encoding to", params.outputPath)
+        msg.verbose("Command line:", table.concat(command, " "))
+        if detached then
+          utils.subprocess_detached({
+            args = command
+          })
+          return true
+        end
+        return run_subprocess({
+          args = command,
+          cancellable = false
+        })
+      end
+      return false
+    end,
+    buildCommand = function(self, params)
+      return nil
+    end
+  }
+  _base_0.__index = _base_0
+  _class_0 = setmetatable({
+    __init = function(self)
+      self.name = "No backend"
+    end,
+    __base = _base_0,
+    __name = "Backend"
+  }, {
+    __index = _base_0,
+    __call = function(cls, ...)
+      local _self_0 = setmetatable({}, _base_0)
+      cls.__init(_self_0, ...)
+      return _self_0
+    end
+  })
+  _base_0.__class = _class_0
+  Backend = _class_0
+end
+local MpvBackend
+do
+  local _class_0
+  local _parent_0 = Backend
+  local _base_0 = {
+    appendProperty = function(self, out, property_name, option_name)
+      option_name = option_name or property_name
+      local prop = mp.get_property(property_name)
+      if prop and prop ~= "" then
+        return append(out, {
+          "--" .. tostring(option_name) .. "=" .. tostring(prop)
+        })
+      end
+    end,
+    getPlaybackOptions = function(self)
+      local ret = { }
+      self:appendProperty(ret, "sub-ass-override")
+      self:appendProperty(ret, "sub-ass-force-style")
+      self:appendProperty(ret, "sub-auto")
+      for _, track in ipairs(mp.get_property_native("track-list")) do
+        if track["type"] == "sub" and track["external"] then
+          append(ret, {
+            "--sub-files-append=" .. tostring(track['external-filename'])
+          })
+        end
+      end
+      return ret
+    end,
+    solveFilters = function(self, filters)
+      local solved = { }
+      for _index_0 = 1, #filters do
+        local filter = filters[_index_0]
+        local str = filter.lavfiCompat and "lavfi-" or ""
+        str = str .. (filter.name .. "=")
+        for k, v in pairs(filter.params) do
+          str = str .. tostring(k) .. "=%" .. tostring(string.len(v)) .. "%" .. tostring(v) .. ":"
+        end
+        solved[#solved + 1] = string.sub(str, 0, string.len(str) - 1)
+      end
+      return solved
+    end,
+    buildCommand = function(self, params)
+      local format = params.format
+      local command = {
+        get_backend_location(),
+        params.inputPath,
+        "--start=" .. seconds_to_time_string(params.startTime, false, true),
+        "--end=" .. seconds_to_time_string(params.endTime, false, true),
+        "--ovc=" .. tostring(format.videoCodec),
+        "--oac=" .. tostring(format.audioCodec),
+        "--loop-file=no"
+      }
+      append(command, {
+        "--vid=" .. (params.videoTrack ~= nil and tostring(params.videoTrack.id) or "no"),
+        "--aid=" .. (params.audioTrack ~= nil and tostring(params.audioTrack.id) or "no"),
+        "--sid=" .. (params.subTrackId ~= nil and tostring(params.subTrack.id) or "no")
+      })
+      append(command, self:getPlaybackOptions())
+      local filters = { }
+      append(filters, self:solveFilters(format:getPreFilters(self)))
+      append(filters, self:solveFilters(params.mpvFilters))
+      if params.crop then
+        filters[#filters + 1] = "lavfi-crop=" .. tostring(params.crop.w) .. ":" .. tostring(params.crop.h) .. ":" .. tostring(params.crop.x) .. ":" .. tostring(params.crop.y)
+      end
+      if params.scale then
+        filters[#filters + 1] = "lavfi-scale=" .. tostring(params.scale.x) .. ":" .. tostring(params.scale.y)
+      end
+      append(filters, self:solveFilters(format:getPostFilters(self)))
+      for _index_0 = 1, #filters do
+        local f = filters[_index_0]
+        command[#command + 1] = "--vf-add=" .. tostring(f)
+      end
+      append(command, format:getFlags(self))
+      if format.acceptsBitrate then
+        if params.audioBitrate ~= 0 then
+          command[#command + 1] = "--oacopts-add=b=" .. tostring(params.audioBitrate) .. "k"
+        end
+        if params.bitrate ~= 0 then
+          command[#command + 1] = "--ovcopts-add=b=" .. tostring(params.bitrate) .. "k"
+        end
+        if params.minBitrate ~= 0 then
+          command[#command + 1] = "--ovcopts-add=minrate=" .. tostring(params.bitrate) .. "k"
+        end
+        if params.maxBitrate ~= 0 then
+          command[#command + 1] = "--ovcopts-add=maxrate=" .. tostring(params.bitrate) .. "k"
+        end
+      end
+      local _list_0 = params.flags
+      for _index_0 = 1, #_list_0 do
+        local flag = _list_0[_index_0]
+        command[#command + 1] = flag
+      end
+      if params.twopass and format.supportsTwopass then
+        local first_pass_cmdline
+        do
+          local _accum_0 = { }
+          local _len_0 = 1
+          for _index_0 = 1, #command do
+            local arg = command[_index_0]
+            _accum_0[_len_0] = arg
+            _len_0 = _len_0 + 1
+          end
+          first_pass_cmdline = _accum_0
+        end
+        append(first_pass_cmdline, {
+          "--ovcopts-add=flags=+pass1",
+          "-of=" .. tostring(format.outputExtension),
+          "-o=" .. tostring(get_null_path())
+        })
+        message("Starting first pass...")
+        msg.verbose("First-pass command line: ", table.concat(first_pass_cmdline, " "))
+        local res = run_subprocess({
+          args = first_pass_cmdline,
+          cancellable = false
+        })
+        if not res then
+          message("First pass failed! Check the logs for details.")
+          return nil
+        end
+        append(command, {
+          "--ovcopts-add=flags=+pass2"
+        })
+      end
+      append(command, {
+        "-o=" .. tostring(params.outputPath)
+      })
+      return command
+    end
+  }
+  _base_0.__index = _base_0
+  setmetatable(_base_0, _parent_0.__base)
+  _class_0 = setmetatable({
+    __init = function(self)
+      self.name = "mpv"
+    end,
+    __base = _base_0,
+    __name = "MpvBackend",
+    __parent = _parent_0
+  }, {
+    __index = function(cls, name)
+      local val = rawget(_base_0, name)
+      if val == nil then
+        local parent = rawget(cls, "__parent")
+        if parent then
+          return parent[name]
+        end
+      else
+        return val
+      end
+    end,
+    __call = function(cls, ...)
+      local _self_0 = setmetatable({}, _base_0)
+      cls.__init(_self_0, ...)
+      return _self_0
+    end
+  })
+  _base_0.__class = _class_0
+  if _parent_0.__inherited then
+    _parent_0.__inherited(_parent_0, _class_0)
+  end
+  MpvBackend = _class_0
+end
+backends["mpv"] = MpvBackend()
+local FfmpegBackend
+do
+  local _class_0
+  local _parent_0 = Backend
+  local _base_0 = {
+    solveFilters = function(self, filters)
+      local solved = { }
+      for _index_0 = 1, #filters do
+        local _continue_0 = false
+        repeat
+          local filter = filters[_index_0]
+          if not filter.lavfiCompat then
+            _continue_0 = true
+            break
+          end
+          local str = filter.name .. "="
+          local ordered_params = { }
+          local highest_n = 0
+          for k, v in pairs(filter.params) do
+            local param_n = tonumber(string.match(k, "^@(%d+)$"))
+            if param_n ~= nil then
+              ordered_params[param_n] = v
+              if param_n > highest_n then
+                highest_n = param_n
+              end
+            else
+              str = str .. tostring(k) .. "=" .. tostring(v) .. ":"
+            end
+          end
+          for i = 0, highest_n do
+            if ordered_params[i] ~= nil then
+              str = str .. tostring(ordered_params[i]) .. ":"
+            end
+          end
+          solved[#solved + 1] = string.sub(str, 0, string.len(str) - 1)
+          _continue_0 = true
+        until true
+        if not _continue_0 then
+          break
+        end
+      end
+      return solved
+    end,
+    buildCommand = function(self, params)
+      local format = params.format
+      local command = {
+        get_backend_location(),
+        "-y",
+        "-ss",
+        seconds_to_time_string(params.startTime, false, true),
+        "-i",
+        params.inputPath,
+        "-t",
+        tostring(params.endTime - params.startTime)
+      }
+      if params.videoTrack ~= nil and params.videoTrack.index ~= nil then
+        append(command, {
+          "-map",
+          "0:" .. tostring(params.videoTrack.index)
+        })
+      end
+      if params.audioTrack ~= nil and params.audioTrack.index ~= nil then
+        append(command, {
+          "-map",
+          "0:" .. tostring(params.audioTrack.index)
+        })
+      end
+      if params.subTrack ~= nil and params.subTrack.index ~= nil then
+        append(command, {
+          "-map",
+          "0:" .. tostring(params.subTrack.index)
+        })
+      end
+      append(command, {
+        "-c:v",
+        tostring(format.videoCodec),
+        "-c:a",
+        tostring(format.audioCodec)
+      })
+      local filters = { }
+      append(filters, self:solveFilters(format:getPreFilters(self)))
+      append(filters, self:solveFilters(params.mpvFilters))
+      if params.crop then
+        filters[#filters + 1] = "crop=" .. tostring(params.crop.w) .. ":" .. tostring(params.crop.h) .. ":" .. tostring(params.crop.x) .. ":" .. tostring(params.crop.y)
+      end
+      if params.scale then
+        filters[#filters + 1] = "scale=" .. tostring(params.scale.x) .. ":" .. tostring(params.scale.y)
+      end
+      append(filters, self:solveFilters(format:getPostFilters(self)))
+      append(command, {
+        "-vf",
+        table.concat(filters, ",")
+      })
+      append(command, format:getFlags(self))
+      if format.acceptsBitrate then
+        if params.audioBitrate ~= 0 then
+          append(command, {
+            "-b:a",
+            tostring(params.audioBitrate) .. "K"
+          })
+        end
+        if params.bitrate ~= 0 then
+          append(command, {
+            "-b:v",
+            tostring(params.bitrate) .. "K"
+          })
+        end
+        if params.minBitrate ~= 0 then
+          append(command, {
+            "-minrate",
+            tostring(params.minBitrate) .. "K"
+          })
+        end
+        if params.maxBitrate ~= 0 then
+          append(command, {
+            "-maxrate",
+            tostring(params.maxBitrate) .. "K"
+          })
+        end
+      end
+      local _list_0 = params.flags
+      for _index_0 = 1, #_list_0 do
+        local flag = _list_0[_index_0]
+        command[#command + 1] = flag
+      end
+      if params.twopass and format.supportsTwopass then
+        local first_pass_cmdline
+        do
+          local _accum_0 = { }
+          local _len_0 = 1
+          for _index_0 = 1, #command do
+            local arg = command[_index_0]
+            _accum_0[_len_0] = arg
+            _len_0 = _len_0 + 1
+          end
+          first_pass_cmdline = _accum_0
+        end
+        append(first_pass_cmdline, {
+          "-pass",
+          "1",
+          get_null_path()
+        })
+        message("Starting first pass...")
+        msg.verbose("First-pass command line: ", table.concat(first_pass_cmdline, " "))
+        local res = run_subprocess({
+          args = first_pass_cmdline,
+          cancellable = false
+        })
+        if not res then
+          message("First pass failed! Check the logs for details.")
+          return nil
+        end
+        append(command, {
+          "-pass",
+          "2"
+        })
+      end
+      append(command, {
+        params.outputPath
+      })
+      return command
+    end
+  }
+  _base_0.__index = _base_0
+  setmetatable(_base_0, _parent_0.__base)
+  _class_0 = setmetatable({
+    __init = function(self)
+      self.name = "ffmpeg"
+    end,
+    __base = _base_0,
+    __name = "FfmpegBackend",
+    __parent = _parent_0
+  }, {
+    __index = function(cls, name)
+      local val = rawget(_base_0, name)
+      if val == nil then
+        local parent = rawget(cls, "__parent")
+        if parent then
+          return parent[name]
+        end
+      else
+        return val
+      end
+    end,
+    __call = function(cls, ...)
+      local _self_0 = setmetatable({}, _base_0)
+      cls.__init(_self_0, ...)
+      return _self_0
+    end
+  })
+  _base_0.__class = _class_0
+  if _parent_0.__inherited then
+    _parent_0.__inherited(_parent_0, _class_0)
+  end
+  FfmpegBackend = _class_0
+end
+backends["ffmpeg"] = FfmpegBackend()
 local get_active_tracks
 get_active_tracks = function()
   local accepted = {
@@ -617,241 +1201,125 @@ get_active_tracks = function()
   local active = { }
   for _, track in ipairs(mp.get_property_native("track-list")) do
     if track["selected"] and accepted[track["type"]] then
-      active[#active + 1] = track
+      active[#active + 1] = Track(track["id"], track["ff-index"], track["type"])
     end
   end
   return active
 end
-local get_scale_filters
-get_scale_filters = function()
-  if options.scale_height > 0 then
-    return {
-      "lavfi-scale=-1:" .. tostring(options.scale_height)
-    }
-  end
-  return { }
-end
-local append_property
-append_property = function(out, property_name, option_name)
-  option_name = option_name or property_name
-  local prop = mp.get_property(property_name)
-  if prop and prop ~= "" then
-    return append(out, {
-      "--" .. tostring(option_name) .. "=" .. tostring(prop)
-    })
-  end
-end
-local append_list_options
-append_list_options = function(out, property_name, option_prefix)
-  option_prefix = option_prefix or property_name
-  local prop = mp.get_property_native(property_name)
-  if prop then
-    for _index_0 = 1, #prop do
-      local value = prop[_index_0]
-      append(out, {
-        "--" .. tostring(option_prefix) .. "-append=" .. tostring(value)
-      })
-    end
-  end
-end
-local get_playback_options
-get_playback_options = function()
-  local ret = { }
-  append_property(ret, "sub-ass-override")
-  append_property(ret, "sub-ass-force-style")
-  append_property(ret, "sub-auto")
-  for _, track in ipairs(mp.get_property_native("track-list")) do
-    if track["type"] == "sub" and track["external"] then
-      append(ret, {
-        "--sub-files-append=" .. tostring(track['external-filename'])
-      })
-    end
-  end
-  return ret
-end
-local apply_current_filters
-apply_current_filters = function(filters)
-  local vf = mp.get_property_native("vf")
-  msg.verbose("apply_current_filters: got " .. tostring(#vf) .. " currently applied.")
-  for _index_0 = 1, #vf do
+local get_current_filters
+get_current_filters = function()
+  local current_filters = mp.get_property_native("vf")
+  local filters = { }
+  msg.verbose("apply_current_filters: got " .. tostring(#current_filters) .. " currently applied.")
+  for _index_0 = 1, #current_filters do
     local _continue_0 = false
     repeat
-      local filter = vf[_index_0]
+      local filter = current_filters[_index_0]
       msg.verbose("apply_current_filters: filter name: " .. tostring(filter['name']))
-      if filter["enabled"] == false then
+      if filter.enabled == false then
         _continue_0 = true
         break
       end
-      if filter["name"] == "crop" then
+      if filter.name == "crop" then
         _continue_0 = true
         break
       end
-      local str = filter["name"]
-      local params = filter["params"] or { }
-      for k, v in pairs(params) do
-        str = str .. ":" .. tostring(k) .. "=%" .. tostring(string.len(v)) .. "%" .. tostring(v)
-      end
-      append(filters, {
-        str
-      })
+      filters[#filters + 1] = MpvFilter(filter.name, filter.params)
       _continue_0 = true
     until true
     if not _continue_0 then
       break
     end
   end
+  return filters
 end
 local encode
 encode = function(region, startTime, endTime)
+  local backend = backends[options.backend]
   local format = formats[options.output_format]
-  local path = mp.get_property("path")
-  if not path then
+  local params = EncodingParameters()
+  params.format = format
+  params.startTime = startTime
+  params.endTime = endTime
+  params.inputPath = mp.get_property("path")
+  if not params.inputPath then
     message("No file is being played")
     return 
   end
-  local is_stream = not file_exists(path)
-  local command = {
-    "mpv",
-    path,
-    "--start=" .. seconds_to_time_string(startTime, false, true),
-    "--end=" .. seconds_to_time_string(endTime, false, true),
-    "--ovc=" .. tostring(format.videoCodec),
-    "--oac=" .. tostring(format.audioCodec),
-    "--loop-file=no"
-  }
-  local vid = -1
-  local aid = -1
-  local sid = -1
   for _, track in ipairs(get_active_tracks()) do
     local _exp_0 = track["type"]
     if "video" == _exp_0 then
-      vid = track['id']
+      params.videoTrack = track
     elseif "audio" == _exp_0 then
-      aid = track['id']
+      params.audioTrack = track
     elseif "sub" == _exp_0 then
-      sid = track['id']
+      params.subTrack = track
     end
   end
-  append(command, {
-    "--vid=" .. (vid >= 0 and tostring(vid) or "no"),
-    "--aid=" .. (aid >= 0 and tostring(aid) or "no"),
-    "--sid=" .. (sid >= 0 and tostring(sid) or "no")
-  })
-  append(command, get_playback_options())
-  local filters = { }
-  append(filters, format:getPreFilters())
+  if options.scale_height > 0 then
+    params.scale = Point(-1, options.scale_height)
+  end
   if options.apply_current_filters then
-    apply_current_filters(filters)
+    params.mpvFilters = get_current_filters()
   end
   if not region or not region:is_valid() then
     msg.verbose("Invalid/unset region, using fullscreen one.")
-    region = make_fullscreen_region()
+    params.crop = make_fullscreen_region()
+  else
+    params.crop = region
   end
-  append(filters, {
-    "lavfi-crop=" .. tostring(region.w) .. ":" .. tostring(region.h) .. ":" .. tostring(region.x) .. ":" .. tostring(region.y)
-  })
-  append(filters, get_scale_filters())
-  append(filters, format:getPostFilters())
-  for _index_0 = 1, #filters do
-    local f = filters[_index_0]
-    append(command, {
-      "--vf-add=" .. tostring(f)
-    })
-  end
-  append(command, format:getFlags())
-  if options.target_filesize > 0 and format.acceptsBitrate then
+  if options.target_filesize > 0 then
     local dT = endTime - startTime
     if options.strict_filesize_constraint then
       local video_kilobits = options.target_filesize * 8
-      if aid >= 0 then
+      if params.audioTrack ~= nil then
         video_kilobits = video_kilobits - dT * options.strict_audio_bitrate
-        append(command, {
-          "--oacopts-add=b=" .. tostring(options.strict_audio_bitrate) .. "k"
-        })
+        params.audioBitrate = options.strict_audio_bitrate
       end
       video_kilobits = video_kilobits * options.strict_bitrate_multiplier
       local bitrate = math.floor(video_kilobits / dT)
-      append(command, {
-        "--ovcopts-add=b=" .. tostring(bitrate) .. "k",
-        "--ovcopts-add=minrate=" .. tostring(bitrate) .. "k",
-        "--ovcopts-add=maxrate=" .. tostring(bitrate) .. "k"
-      })
+      params.bitrate = bitrate
+      params.minBitrate = bitrate
+      params.maxBitrate = bitrate
     else
       local bitrate = math.floor(options.target_filesize * 8 / dT)
-      append(command, {
-        "--ovcopts-add=b=" .. tostring(bitrate) .. "k"
-      })
+      params.bitrate = bitrate
     end
   end
   for token in string.gmatch(options.additional_flags, "[^%s]+") do
-    command[#command + 1] = token
+    params.flags[#params.flags + 1] = token
   end
   if not options.strict_filesize_constraint then
     for token in string.gmatch(options.non_strict_additional_flags, "[^%s]+") do
-      command[#command + 1] = token
+      params.flags[#params.flags + 1] = token
     end
   end
-  if options.twopass and format.supportsTwopass and not is_stream then
-    local first_pass_cmdline
-    do
-      local _accum_0 = { }
-      local _len_0 = 1
-      for _index_0 = 1, #command do
-        local arg = command[_index_0]
-        _accum_0[_len_0] = arg
-        _len_0 = _len_0 + 1
-      end
-      first_pass_cmdline = _accum_0
-    end
-    append(first_pass_cmdline, {
-      "--ovcopts-add=flags=+pass1",
-      "-of=" .. tostring(format.outputExtension),
-      "-o=" .. tostring(get_null_path())
-    })
-    message("Starting first pass...")
-    msg.verbose("First-pass command line: ", table.concat(first_pass_cmdline, " "))
-    local res = run_subprocess({
-      args = first_pass_cmdline,
-      cancellable = false
-    })
-    if not res then
-      message("First pass failed! Check the logs for details.")
-      return 
-    end
-    append(command, {
-      "--ovcopts-add=flags=+pass2"
-    })
-  end
+  local is_stream = not file_exists(params.inputPath)
+  params.twopass = options.twopass and not is_stream
   local dir = ""
-  if is_stream then
+  if options.output_directory ~= "" then
+    dir = options.output_directory
+  elseif is_stream then
     dir = parse_directory("~")
   else
     local _
-    dir, _ = utils.split_path(path)
-  end
-  if options.output_directory ~= "" then
-    dir = parse_directory(options.output_directory)
+    dir, _ = utils.split_path(params.inputPath)
   end
   local formatted_filename = format_filename(startTime, endTime, format)
   local out_path = utils.join_path(dir, formatted_filename)
-  append(command, {
-    "-o=" .. tostring(out_path)
-  })
-  msg.info("Encoding to", out_path)
-  msg.verbose("Command line:", table.concat(command, " "))
+  params.outputPath = out_path
   if options.run_detached then
-    message("Started encode, process was detached.")
-    return utils.subprocess_detached({
-      args = command
-    })
-  else
-    message("Started encode...")
-    local res = run_subprocess({
-      args = command,
-      cancellable = false
-    })
+    local res = backend:encode(params, true)
     if res then
-      return message("Encoded successfully! Saved to\\N" .. tostring(bold(out_path)))
+      return message("Started encode, process was detached. (" .. tostring(backend.name) .. ")")
+    else
+      return message("Encode failed! Couldn't start encode. Check the logs for details.")
+    end
+  else
+    message("Started encode... (" .. tostring(backend.name) .. ")")
+    local res = backend:encode(params, false)
+    if res then
+      return message("Encoded successfully! Saved to\\N" .. tostring(bold(params.outputPath)))
     else
       return message("Encode failed! Check the logs for details.")
     end

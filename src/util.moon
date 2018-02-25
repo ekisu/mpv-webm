@@ -94,3 +94,8 @@ calculate_scale_factor = () ->
 	baseResY = 720
 	osd_w, osd_h = mp.get_osd_size()
 	return osd_h / baseResY
+
+get_backend_location = ->
+	if not options.backend_location or string.len(options.backend_location) == 0
+		return options.backend
+	return options.backend_location
