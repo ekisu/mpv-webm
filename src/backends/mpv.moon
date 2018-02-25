@@ -50,7 +50,7 @@ class MpvBackend extends Backend
 		append(command, {
 			"--vid=" .. (params.videoTrack ~= nil and tostring(params.videoTrack.id) or "no"),
 			"--aid=" .. (params.audioTrack ~= nil and tostring(params.audioTrack.id) or "no"),
-			"--sid=" .. (params.subTrackId ~= nil and tostring(params.subTrack.id) or "no")
+			"--sid=" .. (params.subTrack ~= nil and tostring(params.subTrack.id) or "no")
 		})
 
 		-- Append mpv exclusive options based on playback to have the encoding match it
