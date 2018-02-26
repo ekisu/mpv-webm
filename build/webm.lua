@@ -1073,10 +1073,10 @@ do
       local command = {
         get_backend_location(),
         "-y",
-        "-ss",
-        seconds_to_time_string(params.startTime, false, true),
         "-i",
         params.inputPath,
+        "-ss",
+        seconds_to_time_string(params.startTime, false, true),
         "-t",
         tostring(params.endTime - params.startTime)
       }
