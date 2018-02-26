@@ -600,14 +600,14 @@ do
     end,
     getPostFilters = function(self, backend)
       return {
-        MpvFilter("format", {
-          ["fmt"] = "yuv444p16"
+        MpvFilter("lavfi-format", {
+          ["pix_fmts"] = "yuv444p16"
         }),
         MpvFilter("lavfi-scale", {
           ["in_color_matrix"] = self:getColorspace()
         }),
-        MpvFilter("format", {
-          ["fmt"] = "bgr24"
+        MpvFilter("lavfi-format", {
+          ["pix_fmts"] = "bgr24"
         })
       }
     end
