@@ -44,6 +44,10 @@ get_playback_options = ->
 
 	return ret
 
+get_metadata_flags = ->
+	title = mp.get_property("filename/no-ext")
+	return {"--oset-metadata=title=%#{string.len(title)}%#{title}"}
+
 apply_current_filters = (filters) ->
 	vf = mp.get_property_native("vf")
 	msg.verbose("apply_current_filters: got #{#vf} currently applied.")
@@ -126,6 +130,9 @@ encode = (region, startTime, endTime) ->
 		})
 
 	append(command, format\getFlags!)
+
+	if options.write_filename_on_metadata
+		append(command, get_metadata_flags!)
 
 	if options.target_filesize > 0 and format.acceptsBitrate
 		dT = endTime - startTime

@@ -37,6 +37,8 @@ local options = {
   twopass = false,
   -- If set, applies the video filters currently used on the playback to the encode.
   apply_current_filters = true,
+  -- If set, writes the video's filename to the "Title" field on the metadata.
+  write_filename_on_metadata = false,
   -- Set the number of encoding threads, for codecs libvpx and libvpx-vp9
   libvpx_threads = 4,
   additional_flags = "",
@@ -669,6 +671,13 @@ get_playback_options = function()
   end
   return ret
 end
+local get_metadata_flags
+get_metadata_flags = function()
+  local title = mp.get_property("filename/no-ext")
+  return {
+    "--oset-metadata=title=%" .. tostring(string.len(title)) .. "%" .. tostring(title)
+  }
+end
 local apply_current_filters
 apply_current_filters = function(filters)
   local vf = mp.get_property_native("vf")
@@ -759,6 +768,9 @@ encode = function(region, startTime, endTime)
     })
   end
   append(command, format:getFlags())
+  if options.write_filename_on_metadata then
+    append(command, get_metadata_flags())
+  end
   if options.target_filesize > 0 and format.acceptsBitrate then
     local dT = endTime - startTime
     if options.strict_filesize_constraint then
@@ -1400,6 +1412,10 @@ do
         {
           "strict_filesize_constraint",
           Option("bool", "Strict Filesize Constraint", options.strict_filesize_constraint)
+        },
+        {
+          "write_filename_on_metadata",
+          Option("bool", "Write Filename on Metadata", options.write_filename_on_metadata)
         },
         {
           "target_filesize",
