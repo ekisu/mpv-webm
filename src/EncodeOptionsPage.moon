@@ -132,7 +132,7 @@ class EncodeOptionsPage extends Page
 			step: 250
 			min: 0
 			altDisplayNames:
-				[0]: "disabled"
+				[0]: "0 (constant quality)"
 
 		-- I really dislike hardcoding this here, but, as said below, order in dicts isn't
 		-- guaranteed, and we can't use the formats dict keys.

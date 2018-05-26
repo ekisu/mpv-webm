@@ -15,7 +15,10 @@ options =
 	output_template: "%F-[%s-%e]%M"
 	-- Scale video to a certain height, keeping the aspect ratio. -1 disables it.
 	scale_height: -1
-	-- Target filesize, in kB.
+	-- Target filesize, in kB. This will be used to calculate the bitrate
+	-- used on the encode. If this is set to <= 0, the video bitrate will be set
+	-- to 0, which might enable constant quality modes, depending on the
+	-- video codec that's used (VP8 and VP9, for example).
 	target_filesize: 2500
 	-- If true, will use stricter flags to ensure the resulting file doesn't
 	-- overshoot the target filesize. Not recommended, as constrained quality

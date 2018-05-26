@@ -157,6 +157,12 @@ encode = (region, startTime, endTime) ->
 			append(command, {
 				"--ovcopts-add=b=#{bitrate}k"
 			})
+	elseif options.target_filesize <= 0 and format.acceptsBitrate
+		-- set video bitrate to 0. This might enable constant quality, or some
+		-- other encoding modes, depending on the codec.
+		append(command, {
+			"--ovcopts-add=b=0"
+		})
 
 	-- split the user-passed settings on whitespace
 	for token in string.gmatch(options.additional_flags, "[^%s]+") do

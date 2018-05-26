@@ -20,7 +20,10 @@ local options = {
   output_template = "%F-[%s-%e]%M",
   -- Scale video to a certain height, keeping the aspect ratio. -1 disables it.
   scale_height = -1,
-  -- Target filesize, in kB.
+  -- Target filesize, in kB. This will be used to calculate the bitrate
+  -- used on the encode. If this is set to <= 0, the video bitrate will be set
+  -- to 0, which might enable constant quality modes, depending on the
+  -- video codec that's used (VP8 and VP9, for example).
   target_filesize = 2500,
   -- If true, will use stricter flags to ensure the resulting file doesn't
   -- overshoot the target filesize. Not recommended, as constrained quality
@@ -794,6 +797,10 @@ encode = function(region, startTime, endTime)
         "--ovcopts-add=b=" .. tostring(bitrate) .. "k"
       })
     end
+  elseif options.target_filesize <= 0 and format.acceptsBitrate then
+    append(command, {
+      "--ovcopts-add=b=0"
+    })
   end
   for token in string.gmatch(options.additional_flags, "[^%s]+") do
     command[#command + 1] = token
@@ -1369,7 +1376,7 @@ do
         step = 250,
         min = 0,
         altDisplayNames = {
-          [0] = "disabled"
+          [0] = "0 (constant quality)"
         }
       }
       local formatIds = {
