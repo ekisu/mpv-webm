@@ -709,6 +709,7 @@ get_playback_options = function()
   append_property(ret, "sub-ass-override")
   append_property(ret, "sub-ass-force-style")
   append_property(ret, "sub-auto")
+  append_property(ret, "video-rotate")
   for _, track in ipairs(mp.get_property_native("track-list")) do
     if track["type"] == "sub" and track["external"] then
       append(ret, {

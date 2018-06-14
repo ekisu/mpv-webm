@@ -35,6 +35,7 @@ get_playback_options = ->
 	append_property(ret, "sub-ass-override")
 	append_property(ret, "sub-ass-force-style")
 	append_property(ret, "sub-auto")
+	append_property(ret, "video-rotate")
 
 	-- tracks added manually (eg. drag-and-drop) won't appear on sub-files, so we
 	-- read them from the track-list.
@@ -111,7 +112,7 @@ encode = (region, startTime, endTime) ->
 
 	if options.apply_current_filters
 		apply_current_filters(filters)
-	
+
 	-- Even if we don't have a set region, the user might have external crops applied.
 	-- Solve this by using a region that covers the entire visible screen.
 	if not region or not region\is_valid!
@@ -167,7 +168,7 @@ encode = (region, startTime, endTime) ->
 	-- split the user-passed settings on whitespace
 	for token in string.gmatch(options.additional_flags, "[^%s]+") do
 		command[#command + 1] = token
-	
+
 	if not options.strict_filesize_constraint
 		for token in string.gmatch(options.non_strict_additional_flags, "[^%s]+") do
 			command[#command + 1] = token
@@ -201,7 +202,7 @@ encode = (region, startTime, endTime) ->
 
 	if options.output_directory != ""
 		dir = parse_directory(options.output_directory)
-	
+
 	formatted_filename = format_filename(startTime, endTime, format)
 	out_path = utils.join_path(dir, formatted_filename)
 	append(command, {"-o=#{out_path}"})
