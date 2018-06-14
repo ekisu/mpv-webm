@@ -4,50 +4,23 @@ local msg = require("mp.msg")
 local utils = require("mp.utils")
 local mpopts = require("mp.options")
 local options = {
-  -- Defaults to shift+w
   keybind = "W",
-  -- If empty, saves on the same directory of the playing video.
-  -- A starting "~" will be replaced by the home dir.
   output_directory = "",
   run_detached = false,
-  -- Template string for the output file
-  -- %f - Filename, with extension
-  -- %F - Filename, without extension
-  -- %T - Media title, if it exists, or filename, with extension (useful for some streams, such as YouTube).
-  -- %s, %e - Start and end time, with milliseconds
-  -- %S, %E - Start and time, without milliseconds
-  -- %M - "-audio", if audio is enabled, empty otherwise
   output_template = "%F-[%s-%e]%M",
-  -- Scale video to a certain height, keeping the aspect ratio. -1 disables it.
   scale_height = -1,
-  -- Target filesize, in kB.
   target_filesize = 2500,
-  -- If true, will use stricter flags to ensure the resulting file doesn't
-  -- overshoot the target filesize. Not recommended, as constrained quality
-  -- mode should work well, unless you're really having trouble hitting
-  -- the target size.
   strict_filesize_constraint = false,
   strict_bitrate_multiplier = 0.95,
-  -- In kilobits.
   strict_audio_bitrate = 64,
-  -- Sets the output format, from a few predefined ones.
-  -- Currently we have webm-vp8 (libvpx/libvorbis), webm-vp9 (libvpx-vp9/libvorbis)
-  -- and raw (rawvideo/pcm_s16le).
   output_format = "webm-vp8",
-  -- The encoding backend to use. Currently supports mpv and ffmpeg.
   backend = "mpv",
-  -- Location to the backend executable. Leave blank to have this fall back on the backend option.
   backend_location = "",
   twopass = false,
-  -- If set, applies the video filters currently used on the playback to the encode.
   apply_current_filters = true,
-  -- Set the number of encoding threads, for codecs libvpx and libvpx-vp9
   libvpx_threads = 4,
   additional_flags = "",
-  -- Useful for flags that may impact output filesize, such as crf, qmin, qmax etc
-  -- Won't be applied when strict_filesize_constraint is on.
   non_strict_additional_flags = "--ovcopts-add=crf=10",
-  -- The font size used in the menu. Isn't used for the notifications (started encode, finished encode etc)
   font_size = 28,
   margin = 10,
   message_duration = 5
@@ -785,6 +758,50 @@ do
   WebmVP9 = _class_0
 end
 formats["webm-vp9"] = WebmVP9()
+local MP4
+do
+  local _class_0
+  local _parent_0 = Format
+  local _base_0 = { }
+  _base_0.__index = _base_0
+  setmetatable(_base_0, _parent_0.__base)
+  _class_0 = setmetatable({
+    __init = function(self)
+      self.displayName = "MP4 (h264/AAC)"
+      self.supportsTwopass = true
+      self.videoCodec = "libx264"
+      self.audioCodec = "aac"
+      self.outputExtension = "mp4"
+      self.acceptsBitrate = true
+    end,
+    __base = _base_0,
+    __name = "MP4",
+    __parent = _parent_0
+  }, {
+    __index = function(cls, name)
+      local val = rawget(_base_0, name)
+      if val == nil then
+        local parent = rawget(cls, "__parent")
+        if parent then
+          return parent[name]
+        end
+      else
+        return val
+      end
+    end,
+    __call = function(cls, ...)
+      local _self_0 = setmetatable({}, _base_0)
+      cls.__init(_self_0, ...)
+      return _self_0
+    end
+  })
+  _base_0.__class = _class_0
+  if _parent_0.__inherited then
+    _parent_0.__inherited(_parent_0, _class_0)
+  end
+  MP4 = _class_0
+end
+formats["mp4"] = MP4()
 local backends = { }
 local Backend
 do
@@ -1859,6 +1876,7 @@ do
       local formatIds = {
         "webm-vp8",
         "webm-vp9",
+        "mp4",
         "raw"
       }
       local formatOpts = {

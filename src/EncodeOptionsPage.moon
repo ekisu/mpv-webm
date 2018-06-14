@@ -10,7 +10,7 @@ class Option
 	-- opts.possibleValues is a array in the format
 	-- {
 	--		{value, displayValue}, -- Display value can be omitted.
-	-- 		{value}	
+	-- 		{value}
 	-- }
 	-- setValue will be called for the constructor argument.
 	new: (optType, displayText, value, opts) =>
@@ -136,7 +136,7 @@ class EncodeOptionsPage extends Page
 
 		-- I really dislike hardcoding this here, but, as said below, order in dicts isn't
 		-- guaranteed, and we can't use the formats dict keys.
-		formatIds = {"webm-vp8", "webm-vp9", "raw"}
+		formatIds = {"webm-vp8", "webm-vp9", "mp4", "raw"}
 		formatOpts =
 			possibleValues: [{fId, formats[fId].displayName} for fId in *formatIds]
 

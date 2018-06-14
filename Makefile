@@ -7,6 +7,7 @@ SOURCES += src/encoding_parameters.moon
 SOURCES += src/formats/base.moon
 SOURCES += src/formats/rawvideo.moon
 SOURCES += src/formats/webm.moon
+SOURCES += src/formats/mp4.moon
 SOURCES += src/backends/base.moon
 SOURCES += src/backends/mpv.moon
 SOURCES += src/backends/ffmpeg.moon
