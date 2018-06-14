@@ -612,6 +612,50 @@ do
   WebmVP9 = _class_0
 end
 formats["webm-vp9"] = WebmVP9()
+local MP4
+do
+  local _class_0
+  local _parent_0 = Format
+  local _base_0 = { }
+  _base_0.__index = _base_0
+  setmetatable(_base_0, _parent_0.__base)
+  _class_0 = setmetatable({
+    __init = function(self)
+      self.displayName = "MP4 (h264/AAC)"
+      self.supportsTwopass = true
+      self.videoCodec = "libx264"
+      self.audioCodec = "aac"
+      self.outputExtension = "mp4"
+      self.acceptsBitrate = true
+    end,
+    __base = _base_0,
+    __name = "MP4",
+    __parent = _parent_0
+  }, {
+    __index = function(cls, name)
+      local val = rawget(_base_0, name)
+      if val == nil then
+        local parent = rawget(cls, "__parent")
+        if parent then
+          return parent[name]
+        end
+      else
+        return val
+      end
+    end,
+    __call = function(cls, ...)
+      local _self_0 = setmetatable({}, _base_0)
+      cls.__init(_self_0, ...)
+      return _self_0
+    end
+  })
+  _base_0.__class = _class_0
+  if _parent_0.__inherited then
+    _parent_0.__inherited(_parent_0, _class_0)
+  end
+  MP4 = _class_0
+end
+formats["mp4"] = MP4()
 local get_active_tracks
 get_active_tracks = function()
   local accepted = {
@@ -719,7 +763,7 @@ encode = function(region, startTime, endTime)
   local path = mp.get_property("path")
   if not path then
     message("No file is being played")
-    return 
+    return
   end
   local is_stream = not file_exists(path)
   local command = {
@@ -835,7 +879,7 @@ encode = function(region, startTime, endTime)
     })
     if not res then
       message("First pass failed! Check the logs for details.")
-      return 
+      return
     end
     append(command, {
       "--ovcopts-add=flags=+pass2"
@@ -1382,6 +1426,7 @@ do
       local formatIds = {
         "webm-vp8",
         "webm-vp9",
+        "mp4",
         "raw"
       }
       local formatOpts = {
@@ -1684,15 +1729,15 @@ do
       self:hide()
       if self.startTime < 0 then
         message("No start time, aborting")
-        return 
+        return
       end
       if self.endTime < 0 then
         message("No end time, aborting")
-        return 
+        return
       end
       if self.startTime >= self.endTime then
         message("Start time is ahead of end time, aborting")
-        return 
+        return
       end
       return encode(self.region, self.startTime, self.endTime)
     end

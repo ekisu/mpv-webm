@@ -6,6 +6,7 @@ SOURCES += src/video_to_screen.moon
 SOURCES += src/formats/base.moon
 SOURCES += src/formats/rawvideo.moon
 SOURCES += src/formats/webm.moon
+SOURCES += src/formats/mp4.moon
 SOURCES += src/encode.moon
 SOURCES += src/Page.moon
 SOURCES += src/CropPage.moon
