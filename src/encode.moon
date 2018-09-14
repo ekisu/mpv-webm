@@ -11,7 +11,7 @@ get_active_tracks = ->
 
 get_scale_filters = ->
 	if options.scale_height > 0
-		return {"lavfi-scale=-1:#{options.scale_height}"}
+		return {"lavfi-scale=-2:#{options.scale_height}"}
 	return {}
 
 append_property = (out, property_name, option_name) ->

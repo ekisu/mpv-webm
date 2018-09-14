@@ -675,7 +675,7 @@ local get_scale_filters
 get_scale_filters = function()
   if options.scale_height > 0 then
     return {
-      "lavfi-scale=-1:" .. tostring(options.scale_height)
+      "lavfi-scale=-2:" .. tostring(options.scale_height)
     }
   end
   return { }
