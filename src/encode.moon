@@ -110,8 +110,6 @@ encode = (region, startTime, endTime) ->
 	if options.apply_current_filters
 		apply_current_filters(filters)
 
-	-- Even if we don't have a set region, the user might have external crops applied.
-	-- Solve this by using a region that covers the entire visible screen.
 	if region and region\is_valid!
 		append(filters, {"lavfi-crop=#{region.w}:#{region.h}:#{region.x}:#{region.y}"})
 
