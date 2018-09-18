@@ -59,9 +59,6 @@ apply_current_filters = (filters) ->
 		-- would achieve a different outcome.
 		if filter["enabled"] == false
 			continue
-		-- We apply our own crop filter.
-		if filter["name"] == "crop"
-			continue
 		str = filter["name"]
 		params = filter["params"] or {}
 		for k, v in pairs params
@@ -113,13 +110,8 @@ encode = (region, startTime, endTime) ->
 	if options.apply_current_filters
 		apply_current_filters(filters)
 
-	-- Even if we don't have a set region, the user might have external crops applied.
-	-- Solve this by using a region that covers the entire visible screen.
-	if not region or not region\is_valid!
-		msg.verbose("Invalid/unset region, using fullscreen one.")
-		region = make_fullscreen_region!
-
-	append(filters, {"lavfi-crop=#{region.w}:#{region.h}:#{region.x}:#{region.y}"})
+	if region and region\is_valid!
+		append(filters, {"lavfi-crop=#{region.w}:#{region.h}:#{region.x}:#{region.y}"})
 
 	append(filters, get_scale_filters!)
 

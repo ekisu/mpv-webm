@@ -739,10 +739,6 @@ apply_current_filters = function(filters)
         _continue_0 = true
         break
       end
-      if filter["name"] == "crop" then
-        _continue_0 = true
-        break
-      end
       local str = filter["name"]
       local params = filter["params"] or { }
       for k, v in pairs(params) do
@@ -764,7 +760,7 @@ encode = function(region, startTime, endTime)
   local path = mp.get_property("path")
   if not path then
     message("No file is being played")
-    return
+    return 
   end
   local is_stream = not file_exists(path)
   local command = {
@@ -800,13 +796,11 @@ encode = function(region, startTime, endTime)
   if options.apply_current_filters then
     apply_current_filters(filters)
   end
-  if not region or not region:is_valid() then
-    msg.verbose("Invalid/unset region, using fullscreen one.")
-    region = make_fullscreen_region()
+  if region and region:is_valid() then
+    append(filters, {
+      "lavfi-crop=" .. tostring(region.w) .. ":" .. tostring(region.h) .. ":" .. tostring(region.x) .. ":" .. tostring(region.y)
+    })
   end
-  append(filters, {
-    "lavfi-crop=" .. tostring(region.w) .. ":" .. tostring(region.h) .. ":" .. tostring(region.x) .. ":" .. tostring(region.y)
-  })
   append(filters, get_scale_filters())
   append(filters, format:getPostFilters())
   for _index_0 = 1, #filters do
@@ -880,7 +874,7 @@ encode = function(region, startTime, endTime)
     })
     if not res then
       message("First pass failed! Check the logs for details.")
-      return
+      return 
     end
     append(command, {
       "--ovcopts-add=flags=+pass2"
@@ -1730,15 +1724,15 @@ do
       self:hide()
       if self.startTime < 0 then
         message("No start time, aborting")
-        return
+        return 
       end
       if self.endTime < 0 then
         message("No end time, aborting")
-        return
+        return 
       end
       if self.startTime >= self.endTime then
         message("Start time is ahead of end time, aborting")
-        return
+        return 
       end
       return encode(self.region, self.startTime, self.endTime)
     end
