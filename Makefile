@@ -19,6 +19,7 @@ TMPDIR    := build
 JOINEDSRC := $(TMPDIR)/webm.moon
 OUTPUT    := $(JOINEDSRC:.moon=.lua)
 RESULTS   := $(addprefix $(TMPDIR)/, $(SOURCES:.moon=.lua))
+MPVCONFIGDIR := ~/.config/mpv/
 
 .PHONY: all clean
 
@@ -41,6 +42,10 @@ $(TMPDIR):
 
 $(TMPDIR)/%/: | $(TMPDIR)
 	@mkdir -p $@
+
+install: $(OUTPUT)
+	install -d $(MPVCONFIGDIR)/scripts/
+	install -m 644 $(OUTPUT) $(MPVCONFIGDIR)/scripts/
 
 clean:
 	@rm -rf $(TMPDIR)
