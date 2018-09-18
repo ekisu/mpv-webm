@@ -1,6 +1,7 @@
 # The order of the sources does matter.
-SOURCES := src/requires.moon
-SOURCES += src/options.moon
+LUASOURCES := src/requires.lua
+LUASOURCES := src/options.lua
+
 SOURCES += src/util.moon
 SOURCES += src/video_to_screen.moon
 SOURCES += src/formats/base.moon
@@ -15,15 +16,16 @@ SOURCES += src/PreviewPage.moon
 SOURCES += src/MainPage.moon
 SOURCES += src/main.moon
 
-TMPDIR    := build
-JOINEDSRC := $(TMPDIR)/webm.moon
-OUTPUT    := $(JOINEDSRC:.moon=.lua)
-RESULTS   := $(addprefix $(TMPDIR)/, $(SOURCES:.moon=.lua))
+TMPDIR       := build
+JOINEDSRC    := $(TMPDIR)/webm_bundle.moon
+OUTPUT       := $(JOINEDSRC:.moon=.lua)
+JOINEDLUASRC := $(TMPDIR)/webm.lua
+RESULTS      := $(addprefix $(TMPDIR)/, $(SOURCES:.moon=.lua))
 MPVCONFIGDIR := ~/.config/mpv/
 
 .PHONY: all clean
 
-all: $(OUTPUT)
+all: $(JOINEDLUASRC)
 
 $(OUTPUT): $(JOINEDSRC)
 	@printf 'Building %s\n' $@
@@ -31,6 +33,10 @@ $(OUTPUT): $(JOINEDSRC)
 
 $(JOINEDSRC): $(SOURCES) | $(TMPDIR)
 	@printf 'Generating %s\n' $@
+	@cat $^ > $@
+
+$(JOINEDLUASRC): $(LUASOURCES) $(OUTPUT) | $(TMPDIR)
+	@printf 'Joining with Lua sources into %s.\n' $@
 	@cat $^ > $@
 
 $(TMPDIR)/%.lua: %.moon

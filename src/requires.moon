@@ -1,5 +1,0 @@
-mp = require "mp"
-assdraw = require "mp.assdraw"
-msg = require "mp.msg"
-utils = require "mp.utils"
-mpopts = require "mp.options"
