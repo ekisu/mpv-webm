@@ -49,6 +49,8 @@ local options = {
 	-- Useful for flags that may impact output filesize, such as crf, qmin, qmax etc
 	-- Won't be applied when strict_filesize_constraint is on.
 	non_strict_additional_flags = "--ovcopts-add=crf=10",
+	-- Display the encode progress, in %. Requires run_detached to be disabled.
+	display_progress = true,
 	-- The font size used in the menu. Isn't used for the notifications (started encode, finished encode etc)
 	font_size = 28,
 	margin = 10,
@@ -164,24 +166,21 @@ run_subprocess = function(params)
   return true
 end
 local shell_escape
-shell_escape = function(command_line)
+shell_escape = function(args)
   local ret = { }
   for _, a in pairs(args) do
     local s = tostring(a)
-    if {
-      s = match("[^A-Za-z0-9_/:=-]")
-    } then
-      s = "'" .. {
-        s = gsub("'", "'\\''") .. "'"
-      }
+    if string.match(s, "[^A-Za-z0-9_/:=-]") then
+      s = "'" .. string.gsub(s, "'", "'\\''") .. "'"
     end
     table.insert(ret, s)
   end
   return table.concat(ret, " ")
 end
-local run_subprocess_popen
-run_subprocess_popen = function(command_line)
+local run_subprocess_popen_output_to_file
+run_subprocess_popen_output_to_file = function(command_line, output_file)
   local command_line_string = shell_escape(command_line)
+  command_line_string = command_line_string .. " &> " .. tostring(output_file)
   msg.verbose("run_subprocess_popen: running " .. tostring(command_line_string))
   return io.popen(command_line_string)
 end
@@ -680,6 +679,217 @@ do
   MP4 = _class_0
 end
 formats["mp4"] = MP4()
+local Page
+do
+  local _class_0
+  local _base_0 = {
+    add_keybinds = function(self)
+      if not self.keybinds then
+        return 
+      end
+      for key, func in pairs(self.keybinds) do
+        mp.add_forced_key_binding(key, key, func, {
+          repeatable = true
+        })
+      end
+    end,
+    remove_keybinds = function(self)
+      if not self.keybinds then
+        return 
+      end
+      for key, _ in pairs(self.keybinds) do
+        mp.remove_key_binding(key)
+      end
+    end,
+    observe_properties = function(self)
+      self.sizeCallback = function()
+        return self:draw()
+      end
+      local properties = {
+        "keepaspect",
+        "video-out-params",
+        "video-unscaled",
+        "panscan",
+        "video-zoom",
+        "video-align-x",
+        "video-pan-x",
+        "video-align-y",
+        "video-pan-y",
+        "osd-width",
+        "osd-height"
+      }
+      for _index_0 = 1, #properties do
+        local p = properties[_index_0]
+        mp.observe_property(p, "native", self.sizeCallback)
+      end
+    end,
+    unobserve_properties = function(self)
+      if self.sizeCallback then
+        mp.unobserve_property(self.sizeCallback)
+        self.sizeCallback = nil
+      end
+    end,
+    clear = function(self)
+      local window_w, window_h = mp.get_osd_size()
+      mp.set_osd_ass(window_w, window_h, "")
+      return mp.osd_message("", 0)
+    end,
+    prepare = function(self)
+      return nil
+    end,
+    dispose = function(self)
+      return nil
+    end,
+    show = function(self)
+      self.visible = true
+      self:observe_properties()
+      self:add_keybinds()
+      self:prepare()
+      self:clear()
+      return self:draw()
+    end,
+    hide = function(self)
+      self.visible = false
+      self:unobserve_properties()
+      self:remove_keybinds()
+      self:clear()
+      return self:dispose()
+    end,
+    setup_text = function(self, ass)
+      local scale = calculate_scale_factor()
+      local margin = options.margin * scale
+      ass:pos(margin, margin)
+      return ass:append("{\\fs" .. tostring(options.font_size * scale) .. "}")
+    end
+  }
+  _base_0.__index = _base_0
+  _class_0 = setmetatable({
+    __init = function() end,
+    __base = _base_0,
+    __name = "Page"
+  }, {
+    __index = _base_0,
+    __call = function(cls, ...)
+      local _self_0 = setmetatable({}, _base_0)
+      cls.__init(_self_0, ...)
+      return _self_0
+    end
+  })
+  _base_0.__class = _class_0
+  Page = _class_0
+end
+local EncodeWithProgress
+do
+  local _class_0
+  local _parent_0 = Page
+  local _base_0 = {
+    draw = function(self)
+      local progress = 100 * ((self.currentTime - self.startTime) / self.duration)
+      local progressText = string.format("%d%%", progress)
+      local window_w, window_h = mp.get_osd_size()
+      local ass = assdraw.ass_new()
+      ass:new_event()
+      self:setup_text(ass)
+      ass:append("Encoding (" .. tostring(bold(progressText)) .. ")\\N")
+      return mp.set_osd_ass(window_w, window_h, ass.text)
+    end,
+    parseLine = function(self, line)
+      local matchTime = string.match(line, "Encode time[-]pos: ([0-9.]+)")
+      local matchExit = string.match(line, "Exiting... [(]([%a ]+)[)]")
+      if matchTime == nil and matchExit == nil then
+        return 
+      end
+      if matchTime ~= nil and tonumber(matchTime) > self.currentTime then
+        self.currentTime = tonumber(matchTime)
+      end
+      if matchExit ~= nil then
+        self.finished = true
+        self.finishedReason = matchExit
+      end
+    end,
+    startEncode = function(self, command_line)
+      local copy_command_line
+      do
+        local _accum_0 = { }
+        local _len_0 = 1
+        for _index_0 = 1, #command_line do
+          local arg = command_line[_index_0]
+          _accum_0[_len_0] = arg
+          _len_0 = _len_0 + 1
+        end
+        copy_command_line = _accum_0
+      end
+      local tmpFilename = os.tmpname()
+      msg.verbose("Temporary file: " .. tostring(tmpFilename))
+      append(copy_command_line, {
+        '--term-status-msg=Encode time-pos: ${=time-pos}'
+      })
+      self:show()
+      local processFd = run_subprocess_popen_output_to_file(copy_command_line, tmpFilename)
+      local outputFd = io.open(tmpFilename)
+      while not self.finished do
+        local _continue_0 = false
+        repeat
+          local line = outputFd:read("*l")
+          if line == nil then
+            _continue_0 = true
+            break
+          end
+          msg.verbose("Output: " .. tostring(line))
+          self:parseLine(line)
+          self:draw()
+          _continue_0 = true
+        until true
+        if not _continue_0 then
+          break
+        end
+      end
+      outputFd:close()
+      processFd:close()
+      os.remove(tmpFilename)
+      self:hide()
+      if self.finishedReason == "End of file" then
+        return true
+      end
+      return false
+    end
+  }
+  _base_0.__index = _base_0
+  setmetatable(_base_0, _parent_0.__base)
+  _class_0 = setmetatable({
+    __init = function(self, startTime, endTime)
+      self.startTime = startTime
+      self.endTime = endTime
+      self.duration = endTime - startTime
+      self.currentTime = startTime
+    end,
+    __base = _base_0,
+    __name = "EncodeWithProgress",
+    __parent = _parent_0
+  }, {
+    __index = function(cls, name)
+      local val = rawget(_base_0, name)
+      if val == nil then
+        local parent = rawget(cls, "__parent")
+        if parent then
+          return parent[name]
+        end
+      else
+        return val
+      end
+    end,
+    __call = function(cls, ...)
+      local _self_0 = setmetatable({}, _base_0)
+      cls.__init(_self_0, ...)
+      return _self_0
+    end
+  })
+  _base_0.__class = _class_0
+  if _parent_0.__inherited then
+    _parent_0.__inherited(_parent_0, _class_0)
+  end
+  EncodeWithProgress = _class_0
+end
 local get_active_tracks
 get_active_tracks = function()
   local accepted = {
@@ -927,116 +1137,23 @@ encode = function(region, startTime, endTime)
       args = command
     })
   else
-    message("Started encode...")
-    local res = run_subprocess({
-      args = command,
-      cancellable = false
-    })
+    local res = false
+    if not options.display_progress then
+      message("Started encode...")
+      res = run_subprocess({
+        args = command,
+        cancellable = false
+      })
+    else
+      local ewp = EncodeWithProgress(startTime, endTime)
+      res = ewp:startEncode(command)
+    end
     if res then
       return message("Encoded successfully! Saved to\\N" .. tostring(bold(out_path)))
     else
       return message("Encode failed! Check the logs for details.")
     end
   end
-end
-local Page
-do
-  local _class_0
-  local _base_0 = {
-    add_keybinds = function(self)
-      if not self.keybinds then
-        return 
-      end
-      for key, func in pairs(self.keybinds) do
-        mp.add_forced_key_binding(key, key, func, {
-          repeatable = true
-        })
-      end
-    end,
-    remove_keybinds = function(self)
-      if not self.keybinds then
-        return 
-      end
-      for key, _ in pairs(self.keybinds) do
-        mp.remove_key_binding(key)
-      end
-    end,
-    observe_properties = function(self)
-      self.sizeCallback = function()
-        return self:draw()
-      end
-      local properties = {
-        "keepaspect",
-        "video-out-params",
-        "video-unscaled",
-        "panscan",
-        "video-zoom",
-        "video-align-x",
-        "video-pan-x",
-        "video-align-y",
-        "video-pan-y",
-        "osd-width",
-        "osd-height"
-      }
-      for _index_0 = 1, #properties do
-        local p = properties[_index_0]
-        mp.observe_property(p, "native", self.sizeCallback)
-      end
-    end,
-    unobserve_properties = function(self)
-      if self.sizeCallback then
-        mp.unobserve_property(self.sizeCallback)
-        self.sizeCallback = nil
-      end
-    end,
-    clear = function(self)
-      local window_w, window_h = mp.get_osd_size()
-      mp.set_osd_ass(window_w, window_h, "")
-      return mp.osd_message("", 0)
-    end,
-    prepare = function(self)
-      return nil
-    end,
-    dispose = function(self)
-      return nil
-    end,
-    show = function(self)
-      self.visible = true
-      self:observe_properties()
-      self:add_keybinds()
-      self:prepare()
-      self:clear()
-      return self:draw()
-    end,
-    hide = function(self)
-      self.visible = false
-      self:unobserve_properties()
-      self:remove_keybinds()
-      self:clear()
-      return self:dispose()
-    end,
-    setup_text = function(self, ass)
-      local scale = calculate_scale_factor()
-      local margin = options.margin * scale
-      ass:pos(margin, margin)
-      return ass:append("{\\fs" .. tostring(options.font_size * scale) .. "}")
-    end
-  }
-  _base_0.__index = _base_0
-  _class_0 = setmetatable({
-    __init = function() end,
-    __base = _base_0,
-    __name = "Page"
-  }, {
-    __index = _base_0,
-    __call = function(cls, ...)
-      local _self_0 = setmetatable({}, _base_0)
-      cls.__init(_self_0, ...)
-      return _self_0
-    end
-  })
-  _base_0.__class = _class_0
-  Page = _class_0
 end
 local CropPage
 do

@@ -206,8 +206,13 @@ encode = (region, startTime, endTime) ->
 		message("Started encode, process was detached.")
 		utils.subprocess_detached({args: command})
 	else
-		message("Started encode...")
-		res = run_subprocess({args: command, cancellable: false})
+		res = false
+		if not options.display_progress
+			message("Started encode...")
+			res = run_subprocess({args: command, cancellable: false})
+		else
+			ewp = EncodeWithProgress(startTime, endTime)
+			res = ewp\startEncode(command)
 		if res
 			message("Encoded successfully! Saved to\\N#{bold(out_path)}")
 		else

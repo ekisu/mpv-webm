@@ -44,6 +44,8 @@ local options = {
 	-- Useful for flags that may impact output filesize, such as crf, qmin, qmax etc
 	-- Won't be applied when strict_filesize_constraint is on.
 	non_strict_additional_flags = "--ovcopts-add=crf=10",
+	-- Display the encode progress, in %. Requires run_detached to be disabled.
+	display_progress = true,
 	-- The font size used in the menu. Isn't used for the notifications (started encode, finished encode etc)
 	font_size = 28,
 	margin = 10,

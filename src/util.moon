@@ -90,17 +90,19 @@ run_subprocess = (params) ->
 		return false
 	return true
 
-shell_escape = (command_line) ->
+shell_escape = (args) ->
 	ret = {}
 	for _,a in pairs(args)
 		s = tostring(a)
-		if s:match("[^A-Za-z0-9_/:=-]")
-			s = "'"..s:gsub("'", "'\\''").."'"
+		if string.match(s, "[^A-Za-z0-9_/:=-]")
+			s = "'"..string.gsub(s, "'", "'\\''").."'"
 		table.insert(ret,s)
 	return table.concat(ret, " ")
 
-run_subprocess_popen = (command_line) ->
+run_subprocess_popen_output_to_file = (command_line, output_file) ->
 	command_line_string = shell_escape(command_line)
+	-- Maybe output_file should be escaped...
+	command_line_string ..= " &> #{output_file}"
 	msg.verbose("run_subprocess_popen: running #{command_line_string}")
 	return io.popen(command_line_string)
 
