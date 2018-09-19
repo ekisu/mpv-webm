@@ -51,7 +51,7 @@ $(TMPDIR)/%/: | $(TMPDIR)
 
 install: $(OUTPUT)
 	install -d $(MPVCONFIGDIR)/scripts/
-	install -m 644 $(OUTPUT) $(MPVCONFIGDIR)/scripts/
+	install -m 644 $(JOINEDLUASRC) $(MPVCONFIGDIR)/scripts/
 
 clean:
 	@rm -rf $(TMPDIR)
