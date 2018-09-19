@@ -1,6 +1,6 @@
 # The order of the sources does matter.
 LUASOURCES := src/requires.lua
-LUASOURCES := src/options.lua
+LUASOURCES += src/options.lua
 
 SOURCES += src/util.moon
 SOURCES += src/video_to_screen.moon
@@ -15,6 +15,7 @@ SOURCES += src/EncodeOptionsPage.moon
 SOURCES += src/PreviewPage.moon
 SOURCES += src/MainPage.moon
 SOURCES += src/main.moon
+# SOURCES += src/output_encode_progress.moon
 
 TMPDIR       := build
 JOINEDSRC    := $(TMPDIR)/webm_bundle.moon

@@ -90,6 +90,20 @@ run_subprocess = (params) ->
 		return false
 	return true
 
+shell_escape = (command_line) ->
+	ret = {}
+	for _,a in pairs(args)
+		s = tostring(a)
+		if s:match("[^A-Za-z0-9_/:=-]")
+			s = "'"..s:gsub("'", "'\\''").."'"
+		table.insert(ret,s)
+	return table.concat(ret, " ")
+
+run_subprocess_popen = (command_line) ->
+	command_line_string = shell_escape(command_line)
+	msg.verbose("run_subprocess_popen: running #{command_line_string}")
+	return io.popen(command_line_string)
+
 calculate_scale_factor = () ->
 	baseResY = 720
 	osd_w, osd_h = mp.get_osd_size()

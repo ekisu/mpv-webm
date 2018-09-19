@@ -1,3 +1,8 @@
+local mp = require("mp")
+local assdraw = require("mp.assdraw")
+local msg = require("mp.msg")
+local utils = require("mp.utils")
+local mpopts = require("mp.options")
 local mpopts = require("mp.options")
 local options = {
 	-- Defaults to shift+w
@@ -157,6 +162,28 @@ run_subprocess = function(params)
     return false
   end
   return true
+end
+local shell_escape
+shell_escape = function(command_line)
+  local ret = { }
+  for _, a in pairs(args) do
+    local s = tostring(a)
+    if {
+      s = match("[^A-Za-z0-9_/:=-]")
+    } then
+      s = "'" .. {
+        s = gsub("'", "'\\''") .. "'"
+      }
+    end
+    table.insert(ret, s)
+  end
+  return table.concat(ret, " ")
+end
+local run_subprocess_popen
+run_subprocess_popen = function(command_line)
+  local command_line_string = shell_escape(command_line)
+  msg.verbose("run_subprocess_popen: running " .. tostring(command_line_string))
+  return io.popen(command_line_string)
 end
 local calculate_scale_factor
 calculate_scale_factor = function()
