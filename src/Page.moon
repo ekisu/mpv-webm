@@ -1,9 +1,13 @@
 class Page
 	add_keybinds: =>
+		if not @keybinds
+			return
 		for key, func in pairs @keybinds
 			mp.add_forced_key_binding(key, key, func, {repeatable: true})
 
 	remove_keybinds: =>
+		if not @keybinds
+			return
 		for key, _ in pairs @keybinds
 			mp.remove_key_binding(key)
 
@@ -65,4 +69,4 @@ class Page
 		scale = calculate_scale_factor!
 		margin = options.margin * scale
 		ass\pos(margin, margin)
-		ass\append("{\\fs#{options.font_size * scale}")
+		ass\append("{\\fs#{options.font_size * scale}}")

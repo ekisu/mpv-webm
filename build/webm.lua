@@ -944,6 +944,9 @@ do
   local _class_0
   local _base_0 = {
     add_keybinds = function(self)
+      if not self.keybinds then
+        return 
+      end
       for key, func in pairs(self.keybinds) do
         mp.add_forced_key_binding(key, key, func, {
           repeatable = true
@@ -951,6 +954,9 @@ do
       end
     end,
     remove_keybinds = function(self)
+      if not self.keybinds then
+        return 
+      end
       for key, _ in pairs(self.keybinds) do
         mp.remove_key_binding(key)
       end
@@ -1013,7 +1019,7 @@ do
       local scale = calculate_scale_factor()
       local margin = options.margin * scale
       ass:pos(margin, margin)
-      return ass:append("{\\fs" .. tostring(options.font_size * scale))
+      return ass:append("{\\fs" .. tostring(options.font_size * scale) .. "}")
     end
   }
   _base_0.__index = _base_0
