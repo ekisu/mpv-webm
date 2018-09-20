@@ -30,12 +30,12 @@ class EncodeWithProgress extends Page
 
 	startEncode: (command_line) =>
 		copy_command_line = [arg for arg in *command_line]
-		tmpFilename = os.tmpname()
+		tmpFilename = "webm_encode_output"
 		msg.verbose("Temporary file: #{tmpFilename}")
 		append(copy_command_line, { '--term-status-msg=Encode time-pos: ${=time-pos}' })
 		self\show!
+		outputFd = io.open(tmpFilename, "w+")
 		processFd = run_subprocess_popen_output_to_file(copy_command_line, tmpFilename)
-		outputFd = io.open(tmpFilename)
 		while not @finished
 			line = outputFd\read("*l")
 			if line == nil

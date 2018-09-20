@@ -819,14 +819,14 @@ do
         end
         copy_command_line = _accum_0
       end
-      local tmpFilename = os.tmpname()
+      local tmpFilename = "webm_encode_output"
       msg.verbose("Temporary file: " .. tostring(tmpFilename))
       append(copy_command_line, {
         '--term-status-msg=Encode time-pos: ${=time-pos}'
       })
       self:show()
+      local outputFd = io.open(tmpFilename, "w+")
       local processFd = run_subprocess_popen_output_to_file(copy_command_line, tmpFilename)
-      local outputFd = io.open(tmpFilename)
       while not self.finished do
         local _continue_0 = false
         repeat
