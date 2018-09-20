@@ -177,10 +177,10 @@ shell_escape = function(args)
   end
   return table.concat(ret, " ")
 end
-local run_subprocess_popen_output_to_file
-run_subprocess_popen_output_to_file = function(command_line, output_file)
+local run_subprocess_popen
+run_subprocess_popen = function(command_line)
   local command_line_string = shell_escape(command_line)
-  command_line_string = command_line_string .. " &> " .. tostring(output_file)
+  command_line_string = command_line_string .. " 2>&1"
   msg.verbose("run_subprocess_popen: running " .. tostring(command_line_string))
   return io.popen(command_line_string)
 end
@@ -819,34 +819,17 @@ do
         end
         copy_command_line = _accum_0
       end
-      local tmpFilename = "webm_encode_output"
-      msg.verbose("Temporary file: " .. tostring(tmpFilename))
       append(copy_command_line, {
         '--term-status-msg=Encode time-pos: ${=time-pos}'
       })
       self:show()
-      local outputFd = io.open(tmpFilename, "w+")
-      local processFd = run_subprocess_popen_output_to_file(copy_command_line, tmpFilename)
-      while not self.finished do
-        local _continue_0 = false
-        repeat
-          local line = outputFd:read("*l")
-          if line == nil then
-            _continue_0 = true
-            break
-          end
-          msg.verbose("Output: " .. tostring(line))
-          self:parseLine(line)
-          self:draw()
-          _continue_0 = true
-        until true
-        if not _continue_0 then
-          break
-        end
+      local processFd = run_subprocess_popen(copy_command_line)
+      for line in processFd:lines() do
+        msg.verbose(string.format('%q', line))
+        self:parseLine(line)
+        self:draw()
       end
-      outputFd:close()
       processFd:close()
-      os.remove(tmpFilename)
       self:hide()
       if self.finishedReason == "End of file" then
         return true

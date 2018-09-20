@@ -30,22 +30,14 @@ class EncodeWithProgress extends Page
 
 	startEncode: (command_line) =>
 		copy_command_line = [arg for arg in *command_line]
-		tmpFilename = "webm_encode_output"
-		msg.verbose("Temporary file: #{tmpFilename}")
 		append(copy_command_line, { '--term-status-msg=Encode time-pos: ${=time-pos}' })
 		self\show!
-		outputFd = io.open(tmpFilename, "w+")
-		processFd = run_subprocess_popen_output_to_file(copy_command_line, tmpFilename)
-		while not @finished
-			line = outputFd\read("*l")
-			if line == nil
-				continue
-			msg.verbose("Output: #{line}")
+		processFd = run_subprocess_popen(copy_command_line)
+		for line in processFd\lines()
+			msg.verbose(string.format('%q', line))
 			self\parseLine(line)
 			self\draw!
-		outputFd\close()
 		processFd\close()
-		os.remove(tmpFilename)
 		self\hide!
 
 		-- This is what we want

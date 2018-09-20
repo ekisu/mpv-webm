@@ -99,10 +99,11 @@ shell_escape = (args) ->
 		table.insert(ret,s)
 	return table.concat(ret, " ")
 
-run_subprocess_popen_output_to_file = (command_line, output_file) ->
+run_subprocess_popen = (command_line) ->
 	command_line_string = shell_escape(command_line)
-	-- Maybe output_file should be escaped...
-	command_line_string ..= " &> #{output_file}"
+	-- Redirect stderr to stdout, because for some reason
+	-- the progress is outputted to stderr???
+	command_line_string ..= " 2>&1"
 	msg.verbose("run_subprocess_popen: running #{command_line_string}")
 	return io.popen(command_line_string)
 
