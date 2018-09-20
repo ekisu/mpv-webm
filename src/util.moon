@@ -76,6 +76,27 @@ parse_directory = (dir) ->
 	dir, _ = dir\gsub("^~", home_dir)
 	return dir
 
+-- from stats.lua
+is_windows = type(package) == "table" and type(package.config) == "string" and package.config\sub(1, 1) == "\\"
+
+trim = (s) ->
+	return s\match("^%s*(.-)%s*$")
+
+get_mpv_path = ->
+	if not is_windows
+		return "mpv" -- Assume it's on the PATH
+
+	pid = utils.getpid()
+	res = utils.subprocess({
+		args: {
+			"wmic", "process", "where", "processid=#{pid}",
+			"get", "ExecutablePath", "/VALUE"
+		}
+	})
+
+	key_value = trim(res.stdout)
+	return key_value\sub(string.len("ExecutablePath=") + 1)
+
 get_null_path = ->
 	if file_exists("/dev/null")
 		return "/dev/null"

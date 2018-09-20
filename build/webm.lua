@@ -147,6 +147,31 @@ parse_directory = function(dir)
   dir, _ = dir:gsub("^~", home_dir)
   return dir
 end
+local is_windows = type(package) == "table" and type(package.config) == "string" and package.config:sub(1, 1) == "\\"
+local trim
+trim = function(s)
+  return s:match("^%s*(.-)%s*$")
+end
+local get_mpv_path
+get_mpv_path = function()
+  if not is_windows then
+    return "mpv"
+  end
+  local pid = utils.getpid()
+  local res = utils.subprocess({
+    args = {
+      "wmic",
+      "process",
+      "where",
+      "processid=" .. tostring(pid),
+      "get",
+      "ExecutablePath",
+      "/VALUE"
+    }
+  })
+  local key_value = trim(res.stdout)
+  return key_value:sub(string.len("ExecutablePath=") + 1)
+end
 local get_null_path
 get_null_path = function()
   if file_exists("/dev/null") then
@@ -981,7 +1006,7 @@ encode = function(region, startTime, endTime)
   end
   local is_stream = not file_exists(path)
   local command = {
-    "mpv",
+    get_mpv_path(),
     path,
     "--start=" .. seconds_to_time_string(startTime, false, true),
     "--end=" .. seconds_to_time_string(endTime, false, true),
