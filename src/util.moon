@@ -113,12 +113,20 @@ run_subprocess = (params) ->
 
 shell_escape = (args) ->
 	ret = {}
-	for _,a in pairs(args)
+	for i,a in ipairs(args)
 		s = tostring(a)
 		if string.match(s, "[^A-Za-z0-9_/:=-]")
-			s = "'"..string.gsub(s, "'", "'\\''").."'"
+			-- Single quotes for UNIX, double quotes for Windows.
+			if is_windows
+				s = "'"..string.gsub(s, '"', '"\\""')..'"'
+			else
+				s = "'"..string.gsub(s, "'", "'\\''").."'"
 		table.insert(ret,s)
-	return table.concat(ret, " ")
+	concat = table.concat(ret, " ")
+	if is_windows
+		-- Add a second set of double-quotes because idk it works
+		concat = '"' .. concat .. '"'
+	return concat
 
 run_subprocess_popen = (command_line) ->
 	command_line_string = shell_escape(command_line)
