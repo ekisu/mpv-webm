@@ -118,7 +118,7 @@ shell_escape = (args) ->
 		if string.match(s, "[^A-Za-z0-9_/:=-]")
 			-- Single quotes for UNIX, double quotes for Windows.
 			if is_windows
-				s = "'"..string.gsub(s, '"', '"\\""')..'"'
+				s = '"'..string.gsub(s, '"', '"\\""')..'"'
 			else
 				s = "'"..string.gsub(s, "'", "'\\''").."'"
 		table.insert(ret,s)

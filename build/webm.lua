@@ -197,7 +197,7 @@ shell_escape = function(args)
     local s = tostring(a)
     if string.match(s, "[^A-Za-z0-9_/:=-]") then
       if is_windows then
-        s = "'" .. string.gsub(s, '"', '"\\""') .. '"'
+        s = '"' .. string.gsub(s, '"', '"\\""') .. '"'
       else
         s = "'" .. string.gsub(s, "'", "'\\''") .. "'"
       end
