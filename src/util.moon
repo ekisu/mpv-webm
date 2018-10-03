@@ -76,6 +76,27 @@ parse_directory = (dir) ->
 	dir, _ = dir\gsub("^~", home_dir)
 	return dir
 
+-- from stats.lua
+is_windows = type(package) == "table" and type(package.config) == "string" and package.config\sub(1, 1) == "\\"
+
+trim = (s) ->
+	return s\match("^%s*(.-)%s*$")
+
+get_mpv_path = ->
+	if not is_windows
+		return "mpv" -- Assume it's on the PATH
+
+	pid = utils.getpid()
+	res = utils.subprocess({
+		args: {
+			"wmic", "process", "where", "processid=#{pid}",
+			"get", "ExecutablePath", "/VALUE"
+		}
+	})
+
+	key_value = trim(res.stdout)
+	return key_value\sub(string.len("ExecutablePath=") + 1)
+
 get_null_path = ->
 	if file_exists("/dev/null")
 		return "/dev/null"
@@ -90,17 +111,28 @@ run_subprocess = (params) ->
 		return false
 	return true
 
-shell_escape = (command_line) ->
+shell_escape = (args) ->
 	ret = {}
-	for _,a in pairs(args)
+	for i,a in ipairs(args)
 		s = tostring(a)
-		if s:match("[^A-Za-z0-9_/:=-]")
-			s = "'"..s:gsub("'", "'\\''").."'"
+		if string.match(s, "[^A-Za-z0-9_/:=-]")
+			-- Single quotes for UNIX, double quotes for Windows.
+			if is_windows
+				s = '"'..string.gsub(s, '"', '"\\""')..'"'
+			else
+				s = "'"..string.gsub(s, "'", "'\\''").."'"
 		table.insert(ret,s)
-	return table.concat(ret, " ")
+	concat = table.concat(ret, " ")
+	if is_windows
+		-- Add a second set of double-quotes because idk it works
+		concat = '"' .. concat .. '"'
+	return concat
 
 run_subprocess_popen = (command_line) ->
 	command_line_string = shell_escape(command_line)
+	-- Redirect stderr to stdout, because for some reason
+	-- the progress is outputted to stderr???
+	command_line_string ..= " 2>&1"
 	msg.verbose("run_subprocess_popen: running #{command_line_string}")
 	return io.popen(command_line_string)
 
@@ -108,3 +140,8 @@ calculate_scale_factor = () ->
 	baseResY = 720
 	osd_w, osd_h = mp.get_osd_size()
 	return osd_h / baseResY
+
+should_display_progress = () ->
+	if options.display_progress == "auto"
+		return not is_windows
+	return options.display_progress

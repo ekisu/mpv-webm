@@ -8,14 +8,14 @@ SOURCES += src/formats/base.moon
 SOURCES += src/formats/rawvideo.moon
 SOURCES += src/formats/webm.moon
 SOURCES += src/formats/mp4.moon
-SOURCES += src/encode.moon
 SOURCES += src/Page.moon
+SOURCES += src/EncodeWithProgress.moon
+SOURCES += src/encode.moon
 SOURCES += src/CropPage.moon
 SOURCES += src/EncodeOptionsPage.moon
 SOURCES += src/PreviewPage.moon
 SOURCES += src/MainPage.moon
 SOURCES += src/main.moon
-# SOURCES += src/output_encode_progress.moon
 
 TMPDIR       := build
 JOINEDSRC    := $(TMPDIR)/webm_bundle.moon
@@ -30,7 +30,7 @@ all: $(JOINEDLUASRC)
 
 $(OUTPUT): $(JOINEDSRC)
 	@printf 'Building %s\n' $@
-	@moonc -o $@ $< 2>/dev/null
+	@moonc -o $@ $<
 
 $(JOINEDSRC): $(SOURCES) | $(TMPDIR)
 	@printf 'Generating %s\n' $@
@@ -50,7 +50,7 @@ $(TMPDIR):
 $(TMPDIR)/%/: | $(TMPDIR)
 	@mkdir -p $@
 
-install: $(OUTPUT)
+install: $(JOINEDLUASRC)
 	install -d $(MPVCONFIGDIR)/scripts/
 	install -m 644 $(JOINEDLUASRC) $(MPVCONFIGDIR)/scripts/
 

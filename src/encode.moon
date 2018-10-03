@@ -76,7 +76,7 @@ encode = (region, startTime, endTime) ->
 	is_stream = not file_exists(path)
 
 	command = {
-		"mpv", path,
+		get_mpv_path!, path,
 		"--start=" .. seconds_to_time_string(startTime, false, true),
 		"--end=" .. seconds_to_time_string(endTime, false, true),
 		"--ovc=#{format.videoCodec}", "--oac=#{format.audioCodec}",
@@ -206,8 +206,13 @@ encode = (region, startTime, endTime) ->
 		message("Started encode, process was detached.")
 		utils.subprocess_detached({args: command})
 	else
-		message("Started encode...")
-		res = run_subprocess({args: command, cancellable: false})
+		res = false
+		if not should_display_progress!
+			message("Started encode...")
+			res = run_subprocess({args: command, cancellable: false})
+		else
+			ewp = EncodeWithProgress(startTime, endTime)
+			res = ewp\startEncode(command)
 		if res
 			message("Encoded successfully! Saved to\\N#{bold(out_path)}")
 		else
