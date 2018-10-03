@@ -207,7 +207,7 @@ encode = (region, startTime, endTime) ->
 		utils.subprocess_detached({args: command})
 	else
 		res = false
-		if not options.display_progress
+		if not should_display_progress!
 			message("Started encode...")
 			res = run_subprocess({args: command, cancellable: false})
 		else

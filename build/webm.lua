@@ -50,7 +50,8 @@ local options = {
 	-- Won't be applied when strict_filesize_constraint is on.
 	non_strict_additional_flags = "--ovcopts-add=crf=10",
 	-- Display the encode progress, in %. Requires run_detached to be disabled.
-	display_progress = true,
+	-- On Windows, it shows a cmd popup. "auto" will display progress on non-Windows platforms.
+	display_progress = "auto",
 	-- The font size used in the menu. Isn't used for the notifications (started encode, finished encode etc)
 	font_size = 28,
 	margin = 10,
@@ -222,6 +223,13 @@ calculate_scale_factor = function()
   local baseResY = 720
   local osd_w, osd_h = mp.get_osd_size()
   return osd_h / baseResY
+end
+local should_display_progress
+should_display_progress = function()
+  if options.display_progress == "auto" then
+    return not is_windows
+  end
+  return options.display_progress
 end
 local dimensions_changed = true
 local _video_dimensions = { }
@@ -1154,7 +1162,7 @@ encode = function(region, startTime, endTime)
     })
   else
     local res = false
-    if not options.display_progress then
+    if not should_display_progress() then
       message("Started encode...")
       res = run_subprocess({
         args = command,

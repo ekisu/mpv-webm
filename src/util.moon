@@ -140,3 +140,8 @@ calculate_scale_factor = () ->
 	baseResY = 720
 	osd_w, osd_h = mp.get_osd_size()
 	return osd_h / baseResY
+
+should_display_progress = () ->
+	if options.display_progress == "auto"
+		return not is_windows
+	return options.display_progress
