@@ -1,4 +1,4 @@
-# mpv-webm
+# mpv-webm (with NVENC option)
 Simple WebM maker for [mpv][mpv], with no external dependencies.
 
 ![sample](/img/sample.jpg)
@@ -12,6 +12,6 @@ Follow the on-screen instructions. Encoded WebM files will have audio/subs based
 ## Building
 Building requires [`moonc`, the MoonScript compiler][moonscript], added to the PATH, and a GNUMake compatible make. Run `make` on the root directory. The output files will be placed under the `build` directory.
 
-[build]: https://raw.githubusercontent.com/ElegantMonkey/mpv-webm/master/build/webm.lua
+[build]: https://raw.githubusercontent.com/batraz90/mpv-webm/master/build/webm.lua
 [mpv]: http://mpv.io
 [moonscript]: http://moonscript.org
