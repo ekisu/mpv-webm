@@ -1,4 +1,3 @@
-local mpopts = require("mp.options")
 local options = {
 	-- Defaults to shift+w
 	keybind = "W",
