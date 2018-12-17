@@ -35,6 +35,7 @@ get_playback_options = ->
 	append_property(ret, "sub-ass-override")
 	append_property(ret, "sub-ass-force-style")
 	append_property(ret, "sub-auto")
+	append_property(ret, "sub-delay")
 	append_property(ret, "video-rotate")
 
 	-- tracks added manually (eg. drag-and-drop) won't appear on sub-files, so we

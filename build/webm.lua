@@ -3,7 +3,6 @@ local assdraw = require("mp.assdraw")
 local msg = require("mp.msg")
 local utils = require("mp.utils")
 local mpopts = require("mp.options")
-local mpopts = require("mp.options")
 local options = {
 	-- Defaults to shift+w
 	keybind = "W",
@@ -967,6 +966,7 @@ get_playback_options = function()
   append_property(ret, "sub-ass-override")
   append_property(ret, "sub-ass-force-style")
   append_property(ret, "sub-auto")
+  append_property(ret, "sub-delay")
   append_property(ret, "video-rotate")
   for _, track in ipairs(mp.get_property_native("track-list")) do
     if track["type"] == "sub" and track["external"] then
