@@ -77,7 +77,7 @@ encode = (region, startTime, endTime) ->
 	is_stream = not file_exists(path)
 
 	command = {
-		get_mpv_path!, path,
+		"mpv", path,
 		"--start=" .. seconds_to_time_string(startTime, false, true),
 		"--end=" .. seconds_to_time_string(endTime, false, true),
 		"--ovc=#{format.videoCodec}", "--oac=#{format.audioCodec}",
