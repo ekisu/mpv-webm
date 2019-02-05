@@ -34,6 +34,10 @@ class MainPage extends Page
 		else
 			@startTime = -1
 			@endTime = -1
+		
+		if @visible
+			self\clear!
+			self\draw!
 
 	draw: =>
 		window_w, window_h = mp.get_osd_size()

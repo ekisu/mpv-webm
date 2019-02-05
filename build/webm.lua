@@ -1819,6 +1819,10 @@ do
         self.startTime = -1
         self.endTime = -1
       end
+      if self.visible then
+        self:clear()
+        return self:draw()
+      end
     end,
     draw = function(self)
       local window_w, window_h = mp.get_osd_size()
