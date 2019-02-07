@@ -1811,6 +1811,19 @@ do
         return self:draw()
       end
     end,
+    setupStartAndEndTimes = function(self)
+      if mp.get_property_native("duration") then
+        self.startTime = 0
+        self.endTime = mp.get_property_native("duration")
+      else
+        self.startTime = -1
+        self.endTime = -1
+      end
+      if self.visible then
+        self:clear()
+        return self:draw()
+      end
+    end,
     draw = function(self)
       local window_w, window_h = mp.get_osd_size()
       local ass = assdraw.ass_new()
@@ -1976,7 +1989,7 @@ do
 end
 monitor_dimensions()
 local mainPage = MainPage()
-return mp.add_key_binding(options.keybind, "display-webm-encoder", (function()
+mp.add_key_binding(options.keybind, "display-webm-encoder", (function()
   local _base_0 = mainPage
   local _fn_0 = _base_0.show
   return function(...)
@@ -1985,3 +1998,10 @@ return mp.add_key_binding(options.keybind, "display-webm-encoder", (function()
 end)(), {
   repeatable = false
 })
+return mp.register_event("file-loaded", (function()
+  local _base_0 = mainPage
+  local _fn_0 = _base_0.setupStartAndEndTimes
+  return function(...)
+    return _fn_0(_base_0, ...)
+  end
+end)())
