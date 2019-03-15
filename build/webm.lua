@@ -957,6 +957,19 @@ get_playback_options = function()
   end
   return ret
 end
+local get_speed_flags
+get_speed_flags = function()
+  local ret = { }
+  local speed = mp.get_property_native("speed")
+  if speed ~= 1 then
+    append(ret, {
+      "--vf-add=setpts=PTS/" .. tostring(speed),
+      "--af-add=atempo=" .. tostring(speed),
+      "--sub-speed=1/" .. tostring(speed)
+    })
+  end
+  return ret
+end
 local get_metadata_flags
 get_metadata_flags = function()
   local title = mp.get_property("filename/no-ext")
@@ -1047,6 +1060,7 @@ encode = function(region, startTime, endTime)
       "--vf-add=" .. tostring(f)
     })
   end
+  append(command, get_speed_flags())
   append(command, format:getFlags())
   if options.write_filename_on_metadata then
     append(command, get_metadata_flags())

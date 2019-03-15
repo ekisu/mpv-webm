@@ -46,6 +46,17 @@ get_playback_options = ->
 
 	return ret
 
+get_speed_flags = ->
+	ret = {}
+	speed = mp.get_property_native("speed")
+	if speed != 1
+		append(ret, {
+			"--vf-add=setpts=PTS/#{speed}",
+			"--af-add=atempo=#{speed}",
+			"--sub-speed=1/#{speed}"
+		})
+	return ret
+
 get_metadata_flags = ->
 	title = mp.get_property("filename/no-ext")
 	return {"--oset-metadata=title=%#{string.len(title)}%#{title}"}
@@ -122,6 +133,8 @@ encode = (region, startTime, endTime) ->
 		append(command, {
 			"--vf-add=#{f}"
 		})
+
+	append(command, get_speed_flags!)
 
 	append(command, format\getFlags!)
 
