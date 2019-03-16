@@ -31,9 +31,8 @@ seconds_to_path_element = (seconds, no_ms, full) ->
 	return time_string
 
 file_exists = (name) ->
-	f = io.open(name, "r")
-	if f ~= nil
-		io.close(f)
+	info, err = utils.file_info(name)
+	if info ~= nil
 		return true
 	return false
 

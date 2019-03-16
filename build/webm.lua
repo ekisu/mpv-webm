@@ -99,9 +99,8 @@ seconds_to_path_element = function(seconds, no_ms, full)
 end
 local file_exists
 file_exists = function(name)
-  local f = io.open(name, "r")
-  if f ~= nil then
-    io.close(f)
+  local info, err = utils.file_info(name, "r")
+  if info ~= nil then
     return true
   end
   return false
@@ -1138,6 +1137,7 @@ encode = function(region, startTime, endTime)
   else
     local _
     dir, _ = utils.split_path(path)
+    msg.verbose("Directory", dir)
   end
   if options.output_directory ~= "" then
     dir = parse_directory(options.output_directory)
