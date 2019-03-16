@@ -99,9 +99,8 @@ seconds_to_path_element = function(seconds, no_ms, full)
 end
 local file_exists
 file_exists = function(name)
-  local f = io.open(name, "r")
-  if f ~= nil then
-    io.close(f)
+  local info, err = utils.file_info(name)
+  if info ~= nil then
     return true
   end
   return false
