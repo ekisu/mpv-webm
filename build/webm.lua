@@ -8,7 +8,12 @@ local options = {
 	keybind = "W",
 	-- If empty, saves on the same directory of the playing video.
 	-- A starting "~" will be replaced by the home dir.
-	output_directory = "",
+	-- This field is delimited by double-square-brackets - [[ and ]] - instead of
+	-- quotes, because Windows users might run into a issue when using
+	-- backslashes as a path separator. Examples of valid inputs for this field
+	-- would be: [[]] (the default, empty value), [[C:\Users\John]] (on Windows),
+	-- and [[/home/john]] (on Unix-like systems eg. Linux).
+	output_directory = [[]],
 	run_detached = false,
 	-- Template string for the output file
 	-- %f - Filename, with extension
