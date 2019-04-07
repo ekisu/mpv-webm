@@ -31,9 +31,8 @@ seconds_to_path_element = (seconds, no_ms, full) ->
 	return time_string
 
 file_exists = (name) ->
-	f = io.open(name, "r")
-	if f ~= nil
-		io.close(f)
+	info, err = utils.file_info(name)
+	if info ~= nil
 		return true
 	return false
 
@@ -81,21 +80,6 @@ is_windows = type(package) == "table" and type(package.config) == "string" and p
 
 trim = (s) ->
 	return s\match("^%s*(.-)%s*$")
-
-get_mpv_path = ->
-	if not is_windows
-		return "mpv" -- Assume it's on the PATH
-
-	pid = utils.getpid()
-	res = utils.subprocess({
-		args: {
-			"wmic", "process", "where", "processid=#{pid}",
-			"get", "ExecutablePath", "/VALUE"
-		}
-	})
-
-	key_value = trim(res.stdout)
-	return key_value\sub(string.len("ExecutablePath=") + 1)
 
 get_null_path = ->
 	if file_exists("/dev/null")
