@@ -3,17 +3,13 @@ local assdraw = require("mp.assdraw")
 local msg = require("mp.msg")
 local utils = require("mp.utils")
 local mpopts = require("mp.options")
+local mpopts = require("mp.options")
 local options = {
 	-- Defaults to shift+w
 	keybind = "W",
 	-- If empty, saves on the same directory of the playing video.
 	-- A starting "~" will be replaced by the home dir.
-	-- This field is delimited by double-square-brackets - [[ and ]] - instead of
-	-- quotes, because Windows users might run into a issue when using
-	-- backslashes as a path separator. Examples of valid inputs for this field
-	-- would be: [[]] (the default, empty value), [[C:\Users\John]] (on Windows),
-	-- and [[/home/john]] (on Unix-like systems eg. Linux).
-	output_directory = [[]],
+	output_directory = "",
 	run_detached = false,
 	-- Template string for the output file
 	-- %f - Filename, with extension
@@ -104,8 +100,9 @@ seconds_to_path_element = function(seconds, no_ms, full)
 end
 local file_exists
 file_exists = function(name)
-  local info, err = utils.file_info(name)
-  if info ~= nil then
+  local f = io.open(name, "r")
+  if f ~= nil then
+    io.close(f)
     return true
   end
   return false
@@ -155,6 +152,26 @@ local is_windows = type(package) == "table" and type(package.config) == "string"
 local trim
 trim = function(s)
   return s:match("^%s*(.-)%s*$")
+end
+local get_mpv_path
+get_mpv_path = function()
+  if not is_windows then
+    return "mpv"
+  end
+  local pid = utils.getpid()
+  local res = utils.subprocess({
+    args = {
+      "wmic",
+      "process",
+      "where",
+      "processid=" .. tostring(pid),
+      "get",
+      "ExecutablePath",
+      "/VALUE"
+    }
+  })
+  local key_value = trim(res.stdout)
+  return key_value:sub(string.len("ExecutablePath=") + 1)
 end
 local get_null_path
 get_null_path = function()
@@ -994,7 +1011,6 @@ get_playback_options = function()
   append_property(ret, "sub-ass-override")
   append_property(ret, "sub-ass-force-style")
   append_property(ret, "sub-auto")
-  append_property(ret, "sub-delay")
   append_property(ret, "video-rotate")
   for _, track in ipairs(mp.get_property_native("track-list")) do
     if track["type"] == "sub" and track["external"] then
@@ -1002,19 +1018,6 @@ get_playback_options = function()
         "--sub-files-append=" .. tostring(track['external-filename'])
       })
     end
-  end
-  return ret
-end
-local get_speed_flags
-get_speed_flags = function()
-  local ret = { }
-  local speed = mp.get_property_native("speed")
-  if speed ~= 1 then
-    append(ret, {
-      "--vf-add=setpts=PTS/" .. tostring(speed),
-      "--af-add=atempo=" .. tostring(speed),
-      "--sub-speed=1/" .. tostring(speed)
-    })
   end
   return ret
 end
@@ -1063,7 +1066,7 @@ encode = function(region, startTime, endTime)
   end
   local is_stream = not file_exists(path)
   local command = {
-    "mpv",
+    get_mpv_path(),
     path,
     "--start=" .. seconds_to_time_string(startTime, false, true),
     "--end=" .. seconds_to_time_string(endTime, false, true),
@@ -1108,7 +1111,6 @@ encode = function(region, startTime, endTime)
       "--vf-add=" .. tostring(f)
     })
   end
-  append(command, get_speed_flags())
   append(command, format:getFlags())
   if options.write_filename_on_metadata then
     append(command, get_metadata_flags())
@@ -1874,19 +1876,6 @@ do
         return self:draw()
       end
     end,
-    setupStartAndEndTimes = function(self)
-      if mp.get_property_native("duration") then
-        self.startTime = 0
-        self.endTime = mp.get_property_native("duration")
-      else
-        self.startTime = -1
-        self.endTime = -1
-      end
-      if self.visible then
-        self:clear()
-        return self:draw()
-      end
-    end,
     draw = function(self)
       local window_w, window_h = mp.get_osd_size()
       local ass = assdraw.ass_new()
@@ -2052,7 +2041,7 @@ do
 end
 monitor_dimensions()
 local mainPage = MainPage()
-mp.add_key_binding(options.keybind, "display-webm-encoder", (function()
+return mp.add_key_binding(options.keybind, "display-webm-encoder", (function()
   local _base_0 = mainPage
   local _fn_0 = _base_0.show
   return function(...)
@@ -2061,10 +2050,3 @@ mp.add_key_binding(options.keybind, "display-webm-encoder", (function()
 end)(), {
   repeatable = false
 })
-return mp.register_event("file-loaded", (function()
-  local _base_0 = mainPage
-  local _fn_0 = _base_0.setupStartAndEndTimes
-  return function(...)
-    return _fn_0(_base_0, ...)
-  end
-end)())
