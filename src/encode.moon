@@ -35,7 +35,6 @@ get_playback_options = ->
 	append_property(ret, "sub-ass-override")
 	append_property(ret, "sub-ass-force-style")
 	append_property(ret, "sub-auto")
-	append_property(ret, "sub-delay")
 	append_property(ret, "video-rotate")
 
 	-- tracks added manually (eg. drag-and-drop) won't appear on sub-files, so we
@@ -44,17 +43,6 @@ get_playback_options = ->
 		if track["type"] == "sub" and track["external"]
 			append(ret, {"--sub-files-append=#{track['external-filename']}"})
 
-	return ret
-
-get_speed_flags = ->
-	ret = {}
-	speed = mp.get_property_native("speed")
-	if speed != 1
-		append(ret, {
-			"--vf-add=setpts=PTS/#{speed}",
-			"--af-add=atempo=#{speed}",
-			"--sub-speed=1/#{speed}"
-		})
 	return ret
 
 get_metadata_flags = ->
@@ -88,7 +76,7 @@ encode = (region, startTime, endTime) ->
 	is_stream = not file_exists(path)
 
 	command = {
-		"mpv", path,
+		get_mpv_path!, path,
 		"--start=" .. seconds_to_time_string(startTime, false, true),
 		"--end=" .. seconds_to_time_string(endTime, false, true),
 		"--ovc=#{format.videoCodec}", "--oac=#{format.audioCodec}",
@@ -133,8 +121,6 @@ encode = (region, startTime, endTime) ->
 		append(command, {
 			"--vf-add=#{f}"
 		})
-
-	append(command, get_speed_flags!)
 
 	append(command, format\getFlags!)
 

@@ -23,21 +23,6 @@ class MainPage extends Page
 		if @visible
 			self\clear!
 			self\draw!
-	
-	setupStartAndEndTimes: =>
-		if mp.get_property_native("duration")
-			-- Note: there exists an option called rebase-start-time, which, when set to no,
-			-- could cause the beginning of the video to not be at 0. Not sure how this
-			-- would affect this code.
-			@startTime = 0
-			@endTime = mp.get_property_native("duration")
-		else
-			@startTime = -1
-			@endTime = -1
-		
-		if @visible
-			self\clear!
-			self\draw!
 
 	draw: =>
 		window_w, window_h = mp.get_osd_size()
