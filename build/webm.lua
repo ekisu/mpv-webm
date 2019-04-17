@@ -912,6 +912,27 @@ get_active_tracks = function()
   end
   return active
 end
+local append_track
+append_track = function(out, track)
+  local external_flag = {
+    ["audio"] = "audio-file",
+    ["sub"] = "sub-file"
+  }
+  local internal_flag = {
+    ["video"] = "vid",
+    ["audio"] = "aid",
+    ["sub"] = "sid"
+  }
+  if track['external'] then
+    return append(out, {
+      "--" .. tostring(external_flag[track['type']]) .. "=" .. tostring(track['external-filename'])
+    })
+  else
+    return append(out, {
+      "--" .. tostring(internal_flag[track['type']]) .. "=" .. tostring(track['id'])
+    })
+  end
+end
 local get_scale_filters
 get_scale_filters = function()
   if options.scale_height > 0 then
@@ -952,13 +973,6 @@ get_playback_options = function()
   append_property(ret, "sub-auto")
   append_property(ret, "sub-delay")
   append_property(ret, "video-rotate")
-  for _, track in ipairs(mp.get_property_native("track-list")) do
-    if track["type"] == "sub" and track["external"] then
-      append(ret, {
-        "--sub-files-append=" .. tostring(track['external-filename'])
-      })
-    end
-  end
   return ret
 end
 local get_speed_flags
@@ -1027,24 +1041,42 @@ encode = function(region, startTime, endTime)
     "--oac=" .. tostring(format.audioCodec),
     "--loop-file=no"
   }
-  local vid = -1
-  local aid = -1
-  local sid = -1
+  local track_types_added = {
+    ["video"] = false,
+    ["audio"] = false,
+    ["sub"] = false
+  }
   for _, track in ipairs(get_active_tracks()) do
-    local _exp_0 = track["type"]
-    if "video" == _exp_0 then
-      vid = track['id']
-    elseif "audio" == _exp_0 then
-      aid = track['id']
-    elseif "sub" == _exp_0 then
-      sid = track['id']
+    append_track(command, track)
+    track_types_added[track['type']] = true
+  end
+  for track_type, was_added in pairs(track_types_added) do
+    local _continue_0 = false
+    repeat
+      if was_added then
+        _continue_0 = true
+        break
+      end
+      local _exp_0 = track_type
+      if "video" == _exp_0 then
+        append(command, {
+          "--vid=no"
+        })
+      elseif "audio" == _exp_0 then
+        append(command, {
+          "--aid=no"
+        })
+      elseif "sub" == _exp_0 then
+        append(command, {
+          "--sid=no"
+        })
+      end
+      _continue_0 = true
+    until true
+    if not _continue_0 then
+      break
     end
   end
-  append(command, {
-    "--vid=" .. (vid >= 0 and tostring(vid) or "no"),
-    "--aid=" .. (aid >= 0 and tostring(aid) or "no"),
-    "--sid=" .. (sid >= 0 and tostring(sid) or "no")
-  })
   append(command, get_playback_options())
   local filters = { }
   append(filters, format:getPreFilters())

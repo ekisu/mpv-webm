@@ -9,6 +9,26 @@ get_active_tracks = ->
 			active[#active + 1] = track
 	return active
 
+append_track = (out, track) ->
+	external_flag =
+		"audio": "audio-file"
+		"sub": "sub-file"
+	internal_flag =
+		"video": "vid"
+		"audio": "aid"
+		"sub": "sid"
+	
+	-- The external tracks rely on the behavior that, when using
+	-- audio-file/sub-file only once, the track is selected by default.
+	if track['external']
+		append(out, {
+			"--#{external_flag[track['type']]}=#{track['external-filename']}"
+		})
+	else
+		append(out, {
+			"--#{internal_flag[track['type']]}=#{track['id']}"
+		})
+
 get_scale_filters = ->
 	if options.scale_height > 0
 		return {"lavfi-scale=-2:#{options.scale_height}"}
@@ -37,12 +57,6 @@ get_playback_options = ->
 	append_property(ret, "sub-auto")
 	append_property(ret, "sub-delay")
 	append_property(ret, "video-rotate")
-
-	-- tracks added manually (eg. drag-and-drop) won't appear on sub-files, so we
-	-- read them from the track-list.
-	for _, track in ipairs mp.get_property_native("track-list")
-		if track["type"] == "sub" and track["external"]
-			append(ret, {"--sub-files-append=#{track['external-filename']}"})
 
 	return ret
 
@@ -96,23 +110,24 @@ encode = (region, startTime, endTime) ->
 		"--loop-file=no"
 	}
 
-	vid = -1
-	aid = -1
-	sid = -1
+	track_types_added =
+		"video": false
+		"audio": false
+		"sub": false
 	for _, track in ipairs get_active_tracks!
-		switch track["type"]
+		append_track(command, track)
+		track_types_added[track['type']] = true
+	
+	for track_type, was_added in pairs track_types_added
+		if was_added
+			continue
+		switch track_type
 			when "video"
-				vid = track['id']
+				append(command, {"--vid=no"})
 			when "audio"
-				aid = track['id']
+				append(command, {"--aid=no"})
 			when "sub"
-				sid = track['id']
-
-	append(command, {
-		"--vid=" .. (vid >= 0 and tostring(vid) or "no"),
-		"--aid=" .. (aid >= 0 and tostring(aid) or "no"),
-		"--sid=" .. (sid >= 0 and tostring(sid) or "no")
-	})
+				append(command, {"--sid=no"})
 
 	append(command, get_playback_options!)
 
