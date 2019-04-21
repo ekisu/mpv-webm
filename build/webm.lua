@@ -1105,7 +1105,7 @@ encode = function(region, startTime, endTime)
     local dT = endTime - startTime
     if options.strict_filesize_constraint then
       local video_kilobits = options.target_filesize * 8
-      if aid >= 0 then
+      if track_types_added["audio"] then
         video_kilobits = video_kilobits - dT * options.strict_audio_bitrate
         append(command, {
           "--oacopts-add=b=" .. tostring(options.strict_audio_bitrate) .. "k"

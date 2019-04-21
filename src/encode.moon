@@ -161,7 +161,7 @@ encode = (region, startTime, endTime) ->
 		if options.strict_filesize_constraint
 			-- Calculate video bitrate, assume audio is constant.
 			video_kilobits = options.target_filesize * 8
-			if aid >= 0 -- compensate for audio
+			if track_types_added["audio"] -- compensate for audio
 				video_kilobits = video_kilobits - dT * options.strict_audio_bitrate
 				append(command, {
 					"--oacopts-add=b=#{options.strict_audio_bitrate}k"
