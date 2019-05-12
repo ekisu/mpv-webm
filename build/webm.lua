@@ -683,7 +683,7 @@ do
       elseif "ffmpeg" == _exp_0 then
         return {
           "-threads",
-          options.libvpx_threads
+          tostring(options.libvpx_threads)
         }
       end
     end

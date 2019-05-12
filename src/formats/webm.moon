@@ -30,7 +30,7 @@ class WebmVP8 extends Format
 			when "mpv"
 				return {"--ovcopts-add=threads=#{options.libvpx_threads}"}
 			when "ffmpeg"
-				return {"-threads", options.libvpx_threads}
+				return {"-threads", tostring(options.libvpx_threads)}
 
 formats["webm-vp8"] = WebmVP8!
 
