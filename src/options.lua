@@ -17,6 +17,7 @@ local options = {
 	-- %s, %e - Start and end time, with milliseconds
 	-- %S, %E - Start and time, without milliseconds
 	-- %M - "-audio", if audio is enabled, empty otherwise
+	-- %R - "-(scale_height)p", if scale_height is set, empty otherwise.
 	output_template = "%F-[%s-%e]%M",
 	-- Scale video to a certain height, keeping the aspect ratio. -1 disables it.
 	scale_height = -1,

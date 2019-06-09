@@ -22,6 +22,7 @@ local options = {
 	-- %s, %e - Start and end time, with milliseconds
 	-- %S, %E - Start and time, without milliseconds
 	-- %M - "-audio", if audio is enabled, empty otherwise
+	-- %R - "-(scale_height)p", if scale_height is set, empty otherwise.
 	output_template = "%F-[%s-%e]%M",
 	-- Scale video to a certain height, keeping the aspect ratio. -1 disables it.
 	scale_height = -1,
@@ -120,7 +121,8 @@ format_filename = function(startTime, endTime, videoFormat)
     ["%%e"] = seconds_to_path_element(endTime),
     ["%%E"] = seconds_to_path_element(endTime, true),
     ["%%T"] = mp.get_property("media-title"),
-    ["%%M"] = (mp.get_property_native('aid') and not mp.get_property_native('mute')) and '-audio' or ''
+    ["%%M"] = (mp.get_property_native('aid') and not mp.get_property_native('mute')) and '-audio' or '',
+    ["%%R"] = (options.scale_height ~= -1) and "-" .. tostring(options.scale_height) .. "p" or ""
   }
   local filename = options.output_template
   for format, value in pairs(replaceTable) do
