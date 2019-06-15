@@ -15,9 +15,9 @@ local options = {
 	-- %F - Filename, without extension
 	-- %T - Media title, if it exists, or filename, with extension (useful for some streams, such as YouTube).
 	-- %s, %e - Start and end time, with milliseconds
-	-- %S, %E - Start and time, without milliseconds
+	-- %S, %E - Start and end time, without milliseconds
 	-- %M - "-audio", if audio is enabled, empty otherwise
-	-- %R - "-(scale_height)p", if scale_height is set, empty otherwise.
+	-- %R - "-(height)p", where height is the video's height, or scale_height, if it's enabled.
 	output_template = "%F-[%s-%e]%M",
 	-- Scale video to a certain height, keeping the aspect ratio. -1 disables it.
 	scale_height = -1,
