@@ -56,6 +56,7 @@ class CropPage extends Page
 
 		d = get_video_dimensions!
 		ass\new_event()
+		ass\append("{\\an7}")
 		ass\pos(0, 0)
 		ass\append('{\\bord0}')
 		ass\append('{\\shad0}')

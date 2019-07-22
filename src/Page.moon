@@ -68,5 +68,6 @@ class Page
 	setup_text: (ass) =>
 		scale = calculate_scale_factor!
 		margin = options.margin * scale
+		ass\append("{\\an7}")
 		ass\pos(margin, margin)
 		ass\append("{\\fs#{options.font_size * scale}}")

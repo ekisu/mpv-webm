@@ -20,9 +20,9 @@ local options = {
 	-- %F - Filename, without extension
 	-- %T - Media title, if it exists, or filename, with extension (useful for some streams, such as YouTube).
 	-- %s, %e - Start and end time, with milliseconds
-	-- %S, %E - Start and time, without milliseconds
+	-- %S, %E - Start and end time, without milliseconds
 	-- %M - "-audio", if audio is enabled, empty otherwise
-	-- %R - "-(scale_height)p", if scale_height is set, empty otherwise.
+	-- %R - "-(height)p", where height is the video's height, or scale_height, if it's enabled.
 	output_template = "%F-[%s-%e]%M",
 	-- Scale video to a certain height, keeping the aspect ratio. -1 disables it.
 	scale_height = -1,
@@ -828,6 +828,7 @@ do
     setup_text = function(self, ass)
       local scale = calculate_scale_factor()
       local margin = options.margin * scale
+      ass:append("{\\an7}")
       ass:pos(margin, margin)
       return ass:append("{\\fs" .. tostring(options.font_size * scale) .. "}")
     end
@@ -1307,6 +1308,7 @@ do
       region:set_from_points(self.pointA:to_screen(), self.pointB:to_screen())
       local d = get_video_dimensions()
       ass:new_event()
+      ass:append("{\\an7}")
       ass:pos(0, 0)
       ass:append('{\\bord0}')
       ass:append('{\\shad0}')
