@@ -558,12 +558,6 @@ do
         ["smpte-240m"] = "smpte240m"
       }
       local ret = { }
-      local colormatrix = mp.get_property_native("video-params/colormatrix")
-      if colormatrixFilter[colormatrix] then
-        append(ret, {
-          "lavfi-colormatrix=" .. tostring(colormatrixFilter[colormatrix]) .. ":bt601"
-        })
-      end
       return ret
     end,
     getFlags = function(self)
