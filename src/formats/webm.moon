@@ -16,13 +16,11 @@ class WebmVP8 extends Format
 		ret = {}
 		-- vp8 only supports bt.601, so add a conversion filter
 		-- thanks anon
-		-- 04/08/2019: as of now, mpv freezes sometimes when using the colormatrix
-		-- filter (and seemingly other libavfilter filters), so this is disabled.
-		-- colormatrix = mp.get_property_native("video-params/colormatrix")
-		-- if colormatrixFilter[colormatrix]
-		--	append(ret, {
-		--		"lavfi-colormatrix=#{colormatrixFilter[colormatrix]}:bt601"
-		--	})
+		colormatrix = mp.get_property_native("video-params/colormatrix")
+		if colormatrixFilter[colormatrix]
+			append(ret, {
+				"lavfi-colormatrix=#{colormatrixFilter[colormatrix]}:bt601"
+			})
 		return ret
 
 	getFlags: =>
