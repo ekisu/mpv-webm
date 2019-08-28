@@ -133,6 +133,12 @@ class EncodeOptionsPage extends Page
 			min: 0
 			altDisplayNames:
 				[0]: "0 (constant quality)"
+		
+		crfOpts =
+			step: 1
+			min: -1
+			altDisplayNames:
+				[-1]: "disabled"
 
 		-- I really dislike hardcoding this here, but, as said below, order in dicts isn't
 		-- guaranteed, and we can't use the formats dict keys.
@@ -149,7 +155,8 @@ class EncodeOptionsPage extends Page
 			{"scale_height", Option("list", "Scale Height", options.scale_height, scaleHeightOpts)},
 			{"strict_filesize_constraint", Option("bool", "Strict Filesize Constraint", options.strict_filesize_constraint)},
 			{"write_filename_on_metadata", Option("bool", "Write Filename on Metadata", options.write_filename_on_metadata)},
-			{"target_filesize", Option("int", "Target Filesize", options.target_filesize, filesizeOpts)}
+			{"target_filesize", Option("int", "Target Filesize", options.target_filesize, filesizeOpts)},
+			{"crf", Option("int", "CRF", options.crf, crfOpts)}
 		}
 
 		@keybinds =

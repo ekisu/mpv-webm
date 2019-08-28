@@ -46,9 +46,12 @@ local options = {
 	-- Set the number of encoding threads, for codecs libvpx and libvpx-vp9
 	libvpx_threads = 4,
 	additional_flags = "",
-	-- Useful for flags that may impact output filesize, such as crf, qmin, qmax etc
+	-- Constant Rate Factor (CRF). The value meaning and limits may change,
+	-- from codec to codec. Set to -1 to disable.
+	crf = 10,
+	-- Useful for flags that may impact output filesize, such as qmin, qmax etc
 	-- Won't be applied when strict_filesize_constraint is on.
-	non_strict_additional_flags = "--ovcopts-add=crf=10",
+	non_strict_additional_flags = "",
 	-- Display the encode progress, in %. Requires run_detached to be disabled.
 	-- On Windows, it shows a cmd popup. "auto" will display progress on non-Windows platforms.
 	display_progress = "auto",

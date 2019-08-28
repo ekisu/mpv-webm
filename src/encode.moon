@@ -196,6 +196,13 @@ encode = (region, startTime, endTime) ->
 	if not options.strict_filesize_constraint
 		for token in string.gmatch(options.non_strict_additional_flags, "[^%s]+") do
 			command[#command + 1] = token
+		
+		-- Also add CRF here, as it used to be a part of the non-strict flags.
+		-- This might change in the future, I don't know.
+		if options.crf >= 0
+			append(command, {
+				"--ovcopts-add=crf=#{options.crf}"
+			})
 
 	-- Do the first pass now, as it won't require the output path. I don't think this works on streams.
 	-- Also this will ignore run_detached, at least for the first pass.

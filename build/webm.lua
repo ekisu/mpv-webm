@@ -51,9 +51,12 @@ local options = {
 	-- Set the number of encoding threads, for codecs libvpx and libvpx-vp9
 	libvpx_threads = 4,
 	additional_flags = "",
-	-- Useful for flags that may impact output filesize, such as crf, qmin, qmax etc
+	-- Constant Rate Factor (CRF). The value meaning and limits may change,
+	-- from codec to codec. Set to -1 to disable.
+	crf = 10,
+	-- Useful for flags that may impact output filesize, such as qmin, qmax etc
 	-- Won't be applied when strict_filesize_constraint is on.
-	non_strict_additional_flags = "--ovcopts-add=crf=10",
+	non_strict_additional_flags = "",
 	-- Display the encode progress, in %. Requires run_detached to be disabled.
 	-- On Windows, it shows a cmd popup. "auto" will display progress on non-Windows platforms.
 	display_progress = "auto",
@@ -1184,6 +1187,11 @@ encode = function(region, startTime, endTime)
     for token in string.gmatch(options.non_strict_additional_flags, "[^%s]+") do
       command[#command + 1] = token
     end
+    if options.crf >= 0 then
+      append(command, {
+        "--ovcopts-add=crf=" .. tostring(options.crf)
+      })
+    end
   end
   if options.twopass and format.supportsTwopass and not is_stream then
     local first_pass_cmdline
@@ -1669,6 +1677,13 @@ do
           [0] = "0 (constant quality)"
         }
       }
+      local crfOpts = {
+        step = 1,
+        min = -1,
+        altDisplayNames = {
+          [-1] = "disabled"
+        }
+      }
       local formatIds = {
         "webm-vp8",
         "webm-vp9",
@@ -1719,6 +1734,10 @@ do
         {
           "target_filesize",
           Option("int", "Target Filesize", options.target_filesize, filesizeOpts)
+        },
+        {
+          "crf",
+          Option("int", "CRF", options.crf, crfOpts)
         }
       }
       self.keybinds = {
