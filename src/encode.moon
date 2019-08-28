@@ -20,7 +20,9 @@ append_track = (out, track) ->
 	
 	-- The external tracks rely on the behavior that, when using
 	-- audio-file/sub-file only once, the track is selected by default.
-	if track['external']
+	-- Also, for some reason, ytdl-hook produces external tracks with absurdly long
+	-- filenames; this breaks our command line. Try to keep it sane, under 2048 characters.
+	if track['external'] and string.len(track['external-filename']) <= 2048
 		append(out, {
 			"--#{external_flag[track['type']]}=#{track['external-filename']}"
 		})

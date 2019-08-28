@@ -970,7 +970,7 @@ append_track = function(out, track)
     ["audio"] = "aid",
     ["sub"] = "sid"
   }
-  if track['external'] then
+  if track['external'] and string.len(track['external-filename']) <= 2048 then
     return append(out, {
       "--" .. tostring(external_flag[track['type']]) .. "=" .. tostring(track['external-filename'])
     })
