@@ -57,6 +57,7 @@ get_playback_options = ->
 	append_property(ret, "sub-auto")
 	append_property(ret, "sub-delay")
 	append_property(ret, "video-rotate")
+	append_property(ret, "ytdl-format")
 
 	return ret
 

@@ -1020,6 +1020,7 @@ get_playback_options = function()
   append_property(ret, "sub-auto")
   append_property(ret, "sub-delay")
   append_property(ret, "video-rotate")
+  append_property(ret, "ytdl-format")
   return ret
 end
 local get_speed_flags
