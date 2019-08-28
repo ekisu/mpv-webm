@@ -1333,7 +1333,8 @@ do
       ass:append(tostring(bold('2:')) .. " change point B (" .. tostring(self.pointB.x) .. ", " .. tostring(self.pointB.y) .. ")\\N")
       ass:append(tostring(bold('r:')) .. " reset to whole screen\\N")
       ass:append(tostring(bold('ESC:')) .. " cancel crop\\N")
-      ass:append(tostring(bold('ENTER:')) .. " confirm crop\\N")
+      local width, height = math.abs(self.pointA.x - self.pointB.x), math.abs(self.pointA.y - self.pointB.y)
+      ass:append(tostring(bold('ENTER:')) .. " confirm crop (" .. tostring(width) .. "x" .. tostring(height) .. ")\\N")
       return mp.set_osd_ass(window.w, window.h, ass.text)
     end
   }

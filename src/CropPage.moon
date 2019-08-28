@@ -82,5 +82,6 @@ class CropPage extends Page
 		ass\append("#{bold('2:')} change point B (#{@pointB.x}, #{@pointB.y})\\N")
 		ass\append("#{bold('r:')} reset to whole screen\\N")
 		ass\append("#{bold('ESC:')} cancel crop\\N")
-		ass\append("#{bold('ENTER:')} confirm crop\\N")
+		width, height = math.abs(@pointA.x - @pointB.x), math.abs(@pointA.y - @pointB.y)
+		ass\append("#{bold('ENTER:')} confirm crop (#{width}x#{height})\\N")
 		mp.set_osd_ass(window.w, window.h, ass.text)
