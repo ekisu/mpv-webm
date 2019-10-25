@@ -130,3 +130,9 @@ should_display_progress = () ->
 	if options.display_progress == "auto"
 		return not is_windows
 	return options.display_progress
+
+reverse = (list) ->
+	[element for element in *list[#list, 1, -1]]
+
+get_pass_logfile_path = (encode_out_path) ->
+	"#{encode_out_path}-video-pass1.log"
