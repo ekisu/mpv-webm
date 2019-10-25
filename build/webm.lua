@@ -1491,10 +1491,11 @@ encode = function(region, startTime, endTime)
       res = ewp:startEncode(command)
     end
     if res then
-      return message("Encoded successfully! Saved to\\N" .. tostring(bold(out_path)))
+      message("Encoded successfully! Saved to\\N" .. tostring(bold(out_path)))
     else
-      return message("Encode failed! Check the logs for details.")
+      message("Encode failed! Check the logs for details.")
     end
+    return os.remove(get_pass_logfile_path(out_path))
   end
 end
 local CropPage

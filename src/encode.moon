@@ -260,3 +260,6 @@ encode = (region, startTime, endTime) ->
 			message("Encoded successfully! Saved to\\N#{bold(out_path)}")
 		else
 			message("Encode failed! Check the logs for details.")
+		
+		-- Clean up pass log file.
+		os.remove(get_pass_logfile_path(out_path))
