@@ -67,6 +67,37 @@ local options = {
 }
 
 mpopts.read_options(options)
+local base64_chars='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+
+-- encoding
+function base64_encode(data)
+    return ((data:gsub('.', function(x) 
+        local r,b='',x:byte()
+        for i=8,1,-1 do r=r..(b%2^i-b%2^(i-1)>0 and '1' or '0') end
+        return r;
+    end)..'0000'):gsub('%d%d%d?%d?%d?%d?', function(x)
+        if (#x < 6) then return '' end
+        local c=0
+        for i=1,6 do c=c+(x:sub(i,i)=='1' and 2^(6-i) or 0) end
+        return base64_chars:sub(c+1,c+1)
+    end)..({ '', '==', '=' })[#data%3+1])
+end
+
+-- decoding
+function base64_decode(data)
+    data = string.gsub(data, '[^'..base64_chars..'=]', '')
+    return (data:gsub('.', function(x)
+        if (x == '=') then return '' end
+        local r,f='',(base64_chars:find(x)-1)
+        for i=6,1,-1 do r=r..(f%2^i-f%2^(i-1)>0 and '1' or '0') end
+        return r;
+    end):gsub('%d%d%d?%d?%d?%d?%d?%d?', function(x)
+        if (#x ~= 8) then return '' end
+        local c=0
+        for i=1,8 do c=c+(x:sub(i,i)=='1' and 2^(8-i) or 0) end
+        return string.char(c)
+    end))
+end
 local bold
 bold = function(text)
   return "{\\b1}" .. tostring(text) .. "{\\b0}"
@@ -218,6 +249,22 @@ should_display_progress = function()
     return not is_windows
   end
   return options.display_progress
+end
+local reverse
+reverse = function(list)
+  local _accum_0 = { }
+  local _len_0 = 1
+  local _max_0 = 1
+  for _index_0 = #list, _max_0 < 0 and #list + _max_0 or _max_0, -1 do
+    local element = list[_index_0]
+    _accum_0[_len_0] = element
+    _len_0 = _len_0 + 1
+  end
+  return _accum_0
+end
+local get_pass_logfile_path
+get_pass_logfile_path = function(encode_out_path)
+  return tostring(encode_out_path) .. "-video-pass1.log"
 end
 local dimensions_changed = true
 local _video_dimensions = { }
@@ -442,6 +489,189 @@ make_fullscreen_region = function()
   b:set_from_screen(xb, yb)
   r:set_from_points(a, b)
   return r
+end
+local read_double
+read_double = function(bytes)
+  local sign = 1
+  local mantissa = bytes[2] % 2 ^ 4
+  for i = 3, 8 do
+    mantissa = mantissa * 256 + bytes[i]
+  end
+  if bytes[1] > 127 then
+    sign = -1
+  end
+  local exponent = (bytes[1] % 128) * 2 ^ 4 + math.floor(bytes[2] / 2 ^ 4)
+  if exponent == 0 then
+    return 0
+  end
+  mantissa = (math.ldexp(mantissa, -52) + 1) * sign
+  return math.ldexp(mantissa, exponent - 1023)
+end
+local write_double
+write_double = function(num)
+  local bytes = {
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  }
+  if num == 0 then
+    return bytes
+  end
+  local anum = math.abs(num)
+  local mantissa, exponent = math.frexp(anum)
+  exponent = exponent - 1
+  mantissa = mantissa * 2 - 1
+  local sign = num ~= anum and 128 or 0
+  exponent = exponent + 1023
+  bytes[1] = sign + math.floor(exponent / 2 ^ 4)
+  mantissa = mantissa * 2 ^ 4
+  local currentmantissa = math.floor(mantissa)
+  mantissa = mantissa - currentmantissa
+  bytes[2] = (exponent % 2 ^ 4) * 2 ^ 4 + currentmantissa
+  for i = 3, 8 do
+    mantissa = mantissa * 2 ^ 8
+    currentmantissa = math.floor(mantissa)
+    mantissa = mantissa - currentmantissa
+    bytes[i] = currentmantissa
+  end
+  return bytes
+end
+local FirstpassStats
+do
+  local _class_0
+  local duration_multiplier, fields_before_duration, fields_after_duration
+  local _base_0 = {
+    get_duration = function(self)
+      local big_endian_binary_duration = reverse(self.binary_duration)
+      return read_double(reversed_binary_duration) / duration_multiplier
+    end,
+    set_duration = function(self, duration)
+      local big_endian_binary_duration = write_double(duration * duration_multiplier)
+      self.binary_duration = reverse(big_endian_binary_duration)
+    end,
+    _bytes_to_string = function(self, bytes)
+      return string.char(unpack(bytes))
+    end,
+    as_binary_string = function(self)
+      local before_duration_string = self:_bytes_to_string(self.binary_data_before_duration)
+      local duration_string = self:_bytes_to_string(self.binary_duration)
+      local after_duration_string = self:_bytes_to_string(self.binary_data_after_duration)
+      return before_duration_string .. duration_string .. after_duration_string
+    end
+  }
+  _base_0.__index = _base_0
+  _class_0 = setmetatable({
+    __init = function(self, before_duration, duration, after_duration)
+      self.binary_data_before_duration = before_duration
+      self.binary_duration = duration
+      self.binary_data_after_duration = after_duration
+    end,
+    __base = _base_0,
+    __name = "FirstpassStats"
+  }, {
+    __index = _base_0,
+    __call = function(cls, ...)
+      local _self_0 = setmetatable({}, _base_0)
+      cls.__init(_self_0, ...)
+      return _self_0
+    end
+  })
+  _base_0.__class = _class_0
+  local self = _class_0
+  duration_multiplier = 10000000.0
+  fields_before_duration = 16
+  fields_after_duration = 1
+  self.data_before_duration_size = function(self)
+    return fields_before_duration * 8
+  end
+  self.data_after_duration_size = function(self)
+    return fields_after_duration * 8
+  end
+  self.size = function(self)
+    return (fields_before_duration + 1 + fields_after_duration) * 8
+  end
+  self.from_bytes = function(self, bytes)
+    local before_duration
+    do
+      local _accum_0 = { }
+      local _len_0 = 1
+      local _max_0 = self:data_before_duration_size()
+      for _index_0 = 1, _max_0 < 0 and #bytes + _max_0 or _max_0 do
+        local b = bytes[_index_0]
+        _accum_0[_len_0] = b
+        _len_0 = _len_0 + 1
+      end
+      before_duration = _accum_0
+    end
+    local duration
+    do
+      local _accum_0 = { }
+      local _len_0 = 1
+      local _max_0 = self:data_before_duration_size() + 8
+      for _index_0 = self:data_before_duration_size() + 1, _max_0 < 0 and #bytes + _max_0 or _max_0 do
+        local b = bytes[_index_0]
+        _accum_0[_len_0] = b
+        _len_0 = _len_0 + 1
+      end
+      duration = _accum_0
+    end
+    local after_duration
+    do
+      local _accum_0 = { }
+      local _len_0 = 1
+      for _index_0 = self:data_before_duration_size() + 8 + 1, #bytes do
+        local b = bytes[_index_0]
+        _accum_0[_len_0] = b
+        _len_0 = _len_0 + 1
+      end
+      after_duration = _accum_0
+    end
+    return self(before_duration, duration, after_duration)
+  end
+  FirstpassStats = _class_0
+end
+local read_logfile_into_stats_array
+read_logfile_into_stats_array = function(logfile_path)
+  local file = io.open(logfile_path, "rb")
+  local logfile_string = base64_decode(file:read())
+  file:close()
+  local stats_size = FirstpassStats:size()
+  assert(logfile_string:len() % stats_size == 0)
+  local stats = { }
+  for offset = 1, #logfile_string, stats_size do
+    local bytes = {
+      logfile_string:byte(offset, offset + stats_size - 1)
+    }
+    assert(#bytes == stats_size)
+    stats[#stats + 1] = FirstpassStats:from_bytes(bytes)
+  end
+  return stats
+end
+local write_stats_array_to_logfile
+write_stats_array_to_logfile = function(stats_array, logfile_path)
+  local file = io.open(logfile_path, "wb")
+  local logfile_string = ""
+  for _index_0 = 1, #stats_array do
+    local stat = stats_array[_index_0]
+    logfile_string = logfile_string .. stat:as_binary_string()
+  end
+  file:write(base64_encode(logfile_string))
+  return file:close()
+end
+local vp8_patch_logfile
+vp8_patch_logfile = function(logfile_path, encode_total_duration)
+  local stats_array = read_logfile_into_stats_array(logfile_path)
+  local average_duration = encode_total_duration / (#stats_array - 1)
+  for i = 1, #stats_array - 1 do
+    stats_array[i]:set_duration(average_duration)
+  end
+  stats_array[#stats_array]:set_duration(encode_total_duration)
+  return write_stats_array_to_logfile(stats_array, logfile_path)
 end
 local formats = { }
 local Format
@@ -1193,37 +1423,6 @@ encode = function(region, startTime, endTime)
       })
     end
   end
-  if options.twopass and format.supportsTwopass and not is_stream then
-    local first_pass_cmdline
-    do
-      local _accum_0 = { }
-      local _len_0 = 1
-      for _index_0 = 1, #command do
-        local arg = command[_index_0]
-        _accum_0[_len_0] = arg
-        _len_0 = _len_0 + 1
-      end
-      first_pass_cmdline = _accum_0
-    end
-    append(first_pass_cmdline, {
-      "--ovcopts-add=flags=+pass1",
-      "-of=" .. tostring(format.outputExtension),
-      "-o=" .. tostring(get_null_path())
-    })
-    message("Starting first pass...")
-    msg.verbose("First-pass command line: ", table.concat(first_pass_cmdline, " "))
-    local res = run_subprocess({
-      args = first_pass_cmdline,
-      cancellable = false
-    })
-    if not res then
-      message("First pass failed! Check the logs for details.")
-      return 
-    end
-    append(command, {
-      "--ovcopts-add=flags=+pass2"
-    })
-  end
   local dir = ""
   if is_stream then
     dir = parse_directory("~")
@@ -1239,6 +1438,39 @@ encode = function(region, startTime, endTime)
   append(command, {
     "-o=" .. tostring(out_path)
   })
+  if options.twopass and format.supportsTwopass and not is_stream then
+    local first_pass_cmdline
+    do
+      local _accum_0 = { }
+      local _len_0 = 1
+      for _index_0 = 1, #command do
+        local arg = command[_index_0]
+        _accum_0[_len_0] = arg
+        _len_0 = _len_0 + 1
+      end
+      first_pass_cmdline = _accum_0
+    end
+    append(first_pass_cmdline, {
+      "--ovcopts-add=flags=+pass1"
+    })
+    message("Starting first pass...")
+    msg.verbose("First-pass command line: ", table.concat(first_pass_cmdline, " "))
+    local res = run_subprocess({
+      args = first_pass_cmdline,
+      cancellable = false
+    })
+    if not res then
+      message("First pass failed! Check the logs for details.")
+      return 
+    end
+    append(command, {
+      "--ovcopts-add=flags=+pass2"
+    })
+    if format.videoCodec == "libvpx" then
+      msg.verbose("Patching libvpx pass log file...")
+      vp8_patch_logfile(get_pass_logfile_path(out_path), endTime - startTime)
+    end
+  end
   msg.info("Encoding to", out_path)
   msg.verbose("Command line:", table.concat(command, " "))
   if options.run_detached then

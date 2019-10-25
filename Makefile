@@ -1,9 +1,11 @@
 # The order of the sources does matter.
 LUASOURCES := src/requires.lua
 LUASOURCES += src/options.lua
+LUASOURCES += src/base64.lua
 
 SOURCES += src/util.moon
 SOURCES += src/video_to_screen.moon
+SOURCES += src/vp8_twopass_log_patcher.moon
 SOURCES += src/formats/base.moon
 SOURCES += src/formats/rawvideo.moon
 SOURCES += src/formats/webm.moon
