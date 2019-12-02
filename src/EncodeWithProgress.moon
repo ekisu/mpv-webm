@@ -1,5 +1,5 @@
 -- Not really a Page, but reusing its functions is pretty useful
-class EncodeWithProgress extends Page
+class BaseEncodeWithProgress extends Page
 	new: (startTime, endTime) =>
 		@startTime = startTime
 		@endTime = endTime
@@ -27,20 +27,33 @@ class EncodeWithProgress extends Page
 		if matchExit != nil
 			@finished = true
 			@finishedReason = matchExit
+	
+	runAndReadLinesAsync: (command_line, line_callback, finish_callback) => nil
 
-	startEncode: (command_line) =>
+	onLine: (line) =>
+		self\parseLine(line)
+		self\draw!
+
+	startEncode: (command_line, finish_callback) =>
 		copy_command_line = [arg for arg in *command_line]
 		append(copy_command_line, { '--term-status-msg=Encode time-pos: ${=time-pos}' })
 		self\show!
-		processFd = run_subprocess_popen(copy_command_line)
+		self\runAndReadLinesAsync(copy_command_line, self\onLine, () ->
+			self\hide!
+
+			-- This is what we want
+			if @finishedReason == "End of file"
+				finish_callback(true)
+			else
+				finish_callback(false)
+		)
+
+class PopenEncodeWithProgress extends BaseEncodeWithProgress
+	runAndReadLinesAsync: (command_line, line_callback, finish_callback) =>
+		processFd = run_subprocess_popen(command_line)
 		for line in processFd\lines()
 			msg.verbose(string.format('%q', line))
-			self\parseLine(line)
-			self\draw!
+			line_callback(line)
 		processFd\close()
-		self\hide!
 
-		-- This is what we want
-		if @finishedReason == "End of file"
-			return true
-		return false
+		finish_callback!

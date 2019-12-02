@@ -94,6 +94,15 @@ apply_current_filters = (filters) ->
 			str = str .. ":#{k}=%#{string.len(v)}%#{v}"
 		append(filters, {str})
 
+post_encode = (res, out_path) ->
+		if res
+			message("Encoded successfully! Saved to\\N#{bold(out_path)}")
+		else
+			message("Encode failed! Check the logs for details.")
+		
+		-- Clean up pass log file.
+		os.remove(get_pass_logfile_path(out_path))
+
 encode = (region, startTime, endTime) ->
 	format = formats[options.output_format]
 
@@ -253,13 +262,9 @@ encode = (region, startTime, endTime) ->
 		if not should_display_progress!
 			message("Started encode...")
 			res = run_subprocess({args: command, cancellable: false})
+			post_encode(res, out_path)
 		else
-			ewp = EncodeWithProgress(startTime, endTime)
-			res = ewp\startEncode(command)
-		if res
-			message("Encoded successfully! Saved to\\N#{bold(out_path)}")
-		else
-			message("Encode failed! Check the logs for details.")
-		
-		-- Clean up pass log file.
-		os.remove(get_pass_logfile_path(out_path))
+			ewp = PopenEncodeWithProgress(startTime, endTime)
+			ewp\startEncode(command, (res) ->
+				post_encode(res, out_path)
+			)

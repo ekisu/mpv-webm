@@ -1082,7 +1082,7 @@ do
   _base_0.__class = _class_0
   Page = _class_0
 end
-local EncodeWithProgress
+local BaseEncodeWithProgress
 do
   local _class_0
   local _parent_0 = Page
@@ -1111,7 +1111,14 @@ do
         self.finishedReason = matchExit
       end
     end,
-    startEncode = function(self, command_line)
+    runAndReadLinesAsync = function(self, command_line, line_callback, finish_callback)
+      return nil
+    end,
+    onLine = function(self, line)
+      self:parseLine(line)
+      return self:draw()
+    end,
+    startEncode = function(self, command_line, finish_callback)
       local copy_command_line
       do
         local _accum_0 = { }
@@ -1127,18 +1134,20 @@ do
         '--term-status-msg=Encode time-pos: ${=time-pos}'
       })
       self:show()
-      local processFd = run_subprocess_popen(copy_command_line)
-      for line in processFd:lines() do
-        msg.verbose(string.format('%q', line))
-        self:parseLine(line)
-        self:draw()
-      end
-      processFd:close()
-      self:hide()
-      if self.finishedReason == "End of file" then
-        return true
-      end
-      return false
+      return self:runAndReadLinesAsync(copy_command_line, (function()
+        local _base_1 = self
+        local _fn_0 = _base_1.onLine
+        return function(...)
+          return _fn_0(_base_1, ...)
+        end
+      end)(), function()
+        self:hide()
+        if self.finishedReason == "End of file" then
+          return finish_callback(true)
+        else
+          return finish_callback(false)
+        end
+      end)
     end
   }
   _base_0.__index = _base_0
@@ -1151,7 +1160,7 @@ do
       self.currentTime = startTime
     end,
     __base = _base_0,
-    __name = "EncodeWithProgress",
+    __name = "BaseEncodeWithProgress",
     __parent = _parent_0
   }, {
     __index = function(cls, name)
@@ -1175,7 +1184,55 @@ do
   if _parent_0.__inherited then
     _parent_0.__inherited(_parent_0, _class_0)
   end
-  EncodeWithProgress = _class_0
+  BaseEncodeWithProgress = _class_0
+end
+local PopenEncodeWithProgress
+do
+  local _class_0
+  local _parent_0 = BaseEncodeWithProgress
+  local _base_0 = {
+    runAndReadLinesAsync = function(self, command_line, line_callback, finish_callback)
+      local processFd = run_subprocess_popen(command_line)
+      for line in processFd:lines() do
+        msg.verbose(string.format('%q', line))
+        line_callback(line)
+      end
+      processFd:close()
+      return finish_callback()
+    end
+  }
+  _base_0.__index = _base_0
+  setmetatable(_base_0, _parent_0.__base)
+  _class_0 = setmetatable({
+    __init = function(self, ...)
+      return _class_0.__parent.__init(self, ...)
+    end,
+    __base = _base_0,
+    __name = "PopenEncodeWithProgress",
+    __parent = _parent_0
+  }, {
+    __index = function(cls, name)
+      local val = rawget(_base_0, name)
+      if val == nil then
+        local parent = rawget(cls, "__parent")
+        if parent then
+          return parent[name]
+        end
+      else
+        return val
+      end
+    end,
+    __call = function(cls, ...)
+      local _self_0 = setmetatable({}, _base_0)
+      cls.__init(_self_0, ...)
+      return _self_0
+    end
+  })
+  _base_0.__class = _class_0
+  if _parent_0.__inherited then
+    _parent_0.__inherited(_parent_0, _class_0)
+  end
+  PopenEncodeWithProgress = _class_0
 end
 local get_active_tracks
 get_active_tracks = function()
@@ -1303,6 +1360,15 @@ apply_current_filters = function(filters)
       break
     end
   end
+end
+local post_encode
+post_encode = function(res, out_path)
+  if res then
+    message("Encoded successfully! Saved to\\N" .. tostring(bold(out_path)))
+  else
+    message("Encode failed! Check the logs for details.")
+  end
+  return os.remove(get_pass_logfile_path(out_path))
 end
 local encode
 encode = function(region, startTime, endTime)
@@ -1486,16 +1552,13 @@ encode = function(region, startTime, endTime)
         args = command,
         cancellable = false
       })
+      return post_encode(res, out_path)
     else
-      local ewp = EncodeWithProgress(startTime, endTime)
-      res = ewp:startEncode(command)
+      local ewp = PopenEncodeWithProgress(startTime, endTime)
+      return ewp:startEncode(command, function(res)
+        return post_encode(res, out_path)
+      end)
     end
-    if res then
-      message("Encoded successfully! Saved to\\N" .. tostring(bold(out_path)))
-    else
-      message("Encode failed! Check the logs for details.")
-    end
-    return os.remove(get_pass_logfile_path(out_path))
   end
 end
 local CropPage
