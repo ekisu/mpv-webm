@@ -57,3 +57,24 @@ class PopenEncodeWithProgress extends BaseEncodeWithProgress
 		processFd\close()
 
 		finish_callback!
+
+class WindowsEncodeWithProgress extends BaseEncodeWithProgress
+	runAndReadLinesAsync: (command_line, line_callback, finish_callback) =>
+		subprocess_helper_command_line = {
+			"webm_subprocess_helper",
+			mp.get_property("input-ipc-server"),
+			mp.get_script_name()
+		}
+		append(subprocess_helper_command_line, command_line)
+		msg.verbose("WindowsEncodeWithProcess: command line: #{utils.to_string(subprocess_helper_command_line)}")
+		mp.register_script_message("process-line", line_callback)
+		mp.command_native_async({
+			name: "subprocess",
+			args: subprocess_helper_command_line,
+			playback_only: false
+		}, (res, result, err) ->
+			if not res
+				msg.verbose("Command line failed! Error string: #{err}, #{utils.to_string(result)}, #{utils.to_string(res)}")
+			
+			finish_callback(res)
+		)

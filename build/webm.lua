@@ -59,7 +59,7 @@ local options = {
 	non_strict_additional_flags = "",
 	-- Display the encode progress, in %. Requires run_detached to be disabled.
 	-- On Windows, it shows a cmd popup. "auto" will display progress on non-Windows platforms.
-	display_progress = "auto",
+	display_progress = true,
 	-- The font size used in the menu. Isn't used for the notifications (started encode, finished encode etc)
 	font_size = 28,
 	margin = 10,
@@ -1098,6 +1098,7 @@ do
       return mp.set_osd_ass(window_w, window_h, ass.text)
     end,
     parseLine = function(self, line)
+      msg.info("parseLine: " .. tostring(line))
       local matchTime = string.match(line, "Encode time[-]pos: ([0-9.]+)")
       local matchExit = string.match(line, "Exiting... [(]([%a ]+)[)]")
       if matchTime == nil and matchExit == nil then
@@ -1233,6 +1234,63 @@ do
     _parent_0.__inherited(_parent_0, _class_0)
   end
   PopenEncodeWithProgress = _class_0
+end
+local WindowsEncodeWithProgress
+do
+  local _class_0
+  local _parent_0 = BaseEncodeWithProgress
+  local _base_0 = {
+    runAndReadLinesAsync = function(self, command_line, line_callback, finish_callback)
+      local subprocess_helper_command_line = {
+        "webm_subprocess_helper",
+        mp.get_property("input-ipc-server"),
+        mp.get_script_name()
+      }
+      append(subprocess_helper_command_line, command_line)
+      msg.verbose("WindowsEncodeWithProcess: command line: " .. tostring(utils.to_string(subprocess_helper_command_line)))
+      mp.register_script_message("process-line", line_callback)
+      return mp.command_native_async({
+        name = "subprocess",
+        args = subprocess_helper_command_line,
+        playback_only = false
+      }, function(res, result, err)
+        msg.verbose("Command line failed! Error string: " .. tostring(err) .. ", " .. tostring(utils.to_string(result)) .. ", " .. tostring(utils.to_string(res)))
+        return finish_callback(res)
+      end)
+    end
+  }
+  _base_0.__index = _base_0
+  setmetatable(_base_0, _parent_0.__base)
+  _class_0 = setmetatable({
+    __init = function(self, ...)
+      return _class_0.__parent.__init(self, ...)
+    end,
+    __base = _base_0,
+    __name = "WindowsEncodeWithProgress",
+    __parent = _parent_0
+  }, {
+    __index = function(cls, name)
+      local val = rawget(_base_0, name)
+      if val == nil then
+        local parent = rawget(cls, "__parent")
+        if parent then
+          return parent[name]
+        end
+      else
+        return val
+      end
+    end,
+    __call = function(cls, ...)
+      local _self_0 = setmetatable({}, _base_0)
+      cls.__init(_self_0, ...)
+      return _self_0
+    end
+  })
+  _base_0.__class = _class_0
+  if _parent_0.__inherited then
+    _parent_0.__inherited(_parent_0, _class_0)
+  end
+  WindowsEncodeWithProgress = _class_0
 end
 local get_active_tracks
 get_active_tracks = function()
@@ -1554,7 +1612,12 @@ encode = function(region, startTime, endTime)
       })
       return post_encode(res, out_path)
     else
-      local ewp = PopenEncodeWithProgress(startTime, endTime)
+      local ewp = nil
+      if is_windows then
+        ewp = WindowsEncodeWithProgress(startTime, endTime)
+      else
+        ewp = PopenEncodeWithProgress(startTime, endTime)
+      end
       return ewp:startEncode(command, function(res)
         return post_encode(res, out_path)
       end)

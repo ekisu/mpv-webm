@@ -264,7 +264,11 @@ encode = (region, startTime, endTime) ->
 			res = run_subprocess({args: command, cancellable: false})
 			post_encode(res, out_path)
 		else
-			ewp = PopenEncodeWithProgress(startTime, endTime)
+			ewp = nil
+			if is_windows
+				ewp = WindowsEncodeWithProgress(startTime, endTime)
+			else
+				ewp = PopenEncodeWithProgress(startTime, endTime)
 			ewp\startEncode(command, (res) ->
 				post_encode(res, out_path)
 			)
