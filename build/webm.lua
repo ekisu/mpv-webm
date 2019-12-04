@@ -243,10 +243,28 @@ calculate_scale_factor = function()
   local osd_w, osd_h = mp.get_osd_size()
   return osd_h / baseResY
 end
+local find_subprocess_helper
+find_subprocess_helper = function()
+  local possible_paths = {
+    "~~/scripts/webm_subprocess_helper.exe",
+    "~~/webm_subprocess_helper.exe"
+  }
+  for _index_0 = 1, #possible_paths do
+    local path = possible_paths[_index_0]
+    local expanded_path = mp.command_native({
+      "expand-path",
+      path
+    })
+    if file_exists(expanded_path) then
+      return expanded_path
+    end
+  end
+  return nil
+end
 local should_display_progress
 should_display_progress = function()
   if options.display_progress == "auto" then
-    return not is_windows
+    return not is_windows or (find_subprocess_helper() ~= nil)
   end
   return options.display_progress
 end
@@ -1098,7 +1116,6 @@ do
       return mp.set_osd_ass(window_w, window_h, ass.text)
     end,
     parseLine = function(self, line)
-      msg.info("parseLine: " .. tostring(line))
       local matchTime = string.match(line, "Encode time[-]pos: ([0-9.]+)")
       local matchExit = string.match(line, "Exiting... [(]([%a ]+)[)]")
       if matchTime == nil and matchExit == nil then
@@ -1132,7 +1149,7 @@ do
         copy_command_line = _accum_0
       end
       append(copy_command_line, {
-        '--term-status-msg=Encode time-pos: ${=time-pos}'
+        '--term-status-msg=Encode time-pos: ${=time-pos}\\n'
       })
       self:show()
       return self:runAndReadLinesAsync(copy_command_line, (function()
@@ -1242,7 +1259,7 @@ do
   local _base_0 = {
     runAndReadLinesAsync = function(self, command_line, line_callback, finish_callback)
       local subprocess_helper_command_line = {
-        "webm_subprocess_helper",
+        find_subprocess_helper(),
         mp.get_property("input-ipc-server"),
         mp.get_script_name()
       }
@@ -1254,7 +1271,9 @@ do
         args = subprocess_helper_command_line,
         playback_only = false
       }, function(res, result, err)
-        msg.verbose("Command line failed! Error string: " .. tostring(err) .. ", " .. tostring(utils.to_string(result)) .. ", " .. tostring(utils.to_string(res)))
+        if not res then
+          msg.verbose("Command line failed! Error string: " .. tostring(err) .. ", " .. tostring(utils.to_string(result)) .. ", " .. tostring(utils.to_string(res)))
+        end
         return finish_callback(res)
       end)
     end
@@ -1613,7 +1632,7 @@ encode = function(region, startTime, endTime)
       return post_encode(res, out_path)
     else
       local ewp = nil
-      if is_windows then
+      if is_windows and find_subprocess_helper() ~= nil then
         ewp = WindowsEncodeWithProgress(startTime, endTime)
       else
         ewp = PopenEncodeWithProgress(startTime, endTime)

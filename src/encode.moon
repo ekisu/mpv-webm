@@ -265,7 +265,7 @@ encode = (region, startTime, endTime) ->
 			post_encode(res, out_path)
 		else
 			ewp = nil
-			if is_windows
+			if is_windows and find_subprocess_helper! != nil
 				ewp = WindowsEncodeWithProgress(startTime, endTime)
 			else
 				ewp = PopenEncodeWithProgress(startTime, endTime)

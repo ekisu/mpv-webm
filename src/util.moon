@@ -126,9 +126,23 @@ calculate_scale_factor = () ->
 	osd_w, osd_h = mp.get_osd_size()
 	return osd_h / baseResY
 
+find_subprocess_helper = () ->
+	possible_paths = {
+		"~~/scripts/webm_subprocess_helper.exe",
+		"~~/webm_subprocess_helper.exe"
+	}
+
+	for path in *possible_paths
+		expanded_path = mp.command_native({"expand-path", path})
+		if file_exists(expanded_path)
+			return expanded_path
+	
+	return nil
+
 should_display_progress = () ->
 	if options.display_progress == "auto"
-		return not is_windows
+		-- On Windows, only display progress if we can find the subprocess helper.
+		return not is_windows or (find_subprocess_helper! != nil)
 	return options.display_progress
 
 reverse = (list) ->

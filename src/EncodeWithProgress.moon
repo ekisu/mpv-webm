@@ -36,7 +36,7 @@ class BaseEncodeWithProgress extends Page
 
 	startEncode: (command_line, finish_callback) =>
 		copy_command_line = [arg for arg in *command_line]
-		append(copy_command_line, { '--term-status-msg=Encode time-pos: ${=time-pos}' })
+		append(copy_command_line, { '--term-status-msg=Encode time-pos: ${=time-pos}\\n' })
 		self\show!
 		self\runAndReadLinesAsync(copy_command_line, self\onLine, () ->
 			self\hide!
@@ -61,7 +61,8 @@ class PopenEncodeWithProgress extends BaseEncodeWithProgress
 class WindowsEncodeWithProgress extends BaseEncodeWithProgress
 	runAndReadLinesAsync: (command_line, line_callback, finish_callback) =>
 		subprocess_helper_command_line = {
-			"webm_subprocess_helper",
+			-- Assume that, if we reached this point, this won't return nil.
+			find_subprocess_helper!,
 			mp.get_property("input-ipc-server"),
 			mp.get_script_name()
 		}
