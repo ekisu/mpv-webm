@@ -11,11 +11,16 @@ SOURCES += main.cpp
 
 OUTPUT := $(TMPDIR)/webm_subprocess_helper.exe
 
+.PHONY: all clean
+
 all: $(OUTPUT)
 
 clean:
 	rm $(OUTPUT)
 
-$(OUTPUT): $(SOURCES)
+$(TMPDIR):
+	@mkdir -p $@
+
+$(OUTPUT): $(SOURCES) | $(TMPDIR)
 	@printf 'Building %s\n' $@
-	@$(CXX) $(CXXFLAGS) $(SOURCES) -o $(OUTPUT)
+	$(CXX) $(CXXFLAGS) $(SOURCES) -o $(OUTPUT)

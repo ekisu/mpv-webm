@@ -19,14 +19,15 @@ SOURCES += src/PreviewPage.moon
 SOURCES += src/MainPage.moon
 SOURCES += src/main.moon
 
-TMPDIR       := build
+MAKEFILE_DIR := $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
+TMPDIR       := $(MAKEFILE_DIR)/build
 JOINEDSRC    := $(TMPDIR)/webm_bundle.moon
 OUTPUT       := $(JOINEDSRC:.moon=.lua)
 JOINEDLUASRC := $(TMPDIR)/webm.lua
 RESULTS      := $(addprefix $(TMPDIR)/, $(SOURCES:.moon=.lua))
 MPVCONFIGDIR := ~/.config/mpv/
 
-.PHONY: all clean
+.PHONY: all clean subprocess_helper
 
 all: $(JOINEDLUASRC)
 
@@ -58,6 +59,7 @@ install: $(JOINEDLUASRC)
 
 clean:
 	@rm -rf $(TMPDIR)
+	$(MAKE) -C src/subprocess_helper clean TMPDIR=$(TMPDIR)
 
 subprocess_helper:
-	$(MAKE) -C src/subprocess_helper
+	$(MAKE) -C src/subprocess_helper TMPDIR=$(TMPDIR)
