@@ -58,3 +58,6 @@ install: $(JOINEDLUASRC)
 
 clean:
 	@rm -rf $(TMPDIR)
+
+subprocess_helper:
+	$(MAKE) -C src/subprocess_helper
