@@ -1044,6 +1044,9 @@ do
       return nil
     end,
     show = function(self)
+      if self.visible then
+        return 
+      end
       self.visible = true
       self:observe_properties()
       self:add_keybinds()
@@ -1052,6 +1055,9 @@ do
       return self:draw()
     end,
     hide = function(self)
+      if not self.visible then
+        return 
+      end
       self.visible = false
       self:unobserve_properties()
       self:remove_keybinds()

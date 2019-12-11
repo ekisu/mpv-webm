@@ -51,6 +51,9 @@ class Page
 		nil
 
 	show: =>
+		if @visible
+			return
+		
 		@visible = true
 		self\observe_properties!
 		self\add_keybinds!
@@ -59,6 +62,9 @@ class Page
 		self\draw!
 
 	hide: =>
+		if not @visible
+			return
+		
 		@visible = false
 		self\unobserve_properties!
 		self\remove_keybinds!
