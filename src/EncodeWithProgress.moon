@@ -30,7 +30,7 @@ class EncodeWithProgress extends Page
 
 	startEncode: (command_line) =>
 		copy_command_line = [arg for arg in *command_line]
-		append(copy_command_line, { '--term-status-msg=Encode time-pos: ${=time-pos}' })
+		append(copy_command_line, { '--term-status-msg=Encode time-pos: ${=time-pos}\\n' })
 		self\show!
 		processFd = run_subprocess_popen(copy_command_line)
 		for line in processFd\lines()
