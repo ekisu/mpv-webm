@@ -1130,7 +1130,7 @@ do
         copy_command_line = _accum_0
       end
       append(copy_command_line, {
-        '--term-status-msg=Encode time-pos: ${=time-pos}'
+        '--term-status-msg=Encode time-pos: ${=time-pos}\\n'
       })
       self:show()
       local processFd = run_subprocess_popen(copy_command_line)
