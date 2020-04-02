@@ -3,10 +3,14 @@ get_active_tracks = ->
 		video: true
 		audio: not mp.get_property_bool("mute")
 		sub: mp.get_property_bool("sub-visibility")
-	active = {}
+	active = 
+		video: {}
+		audio: {}
+		sub: {}
 	for _, track in ipairs mp.get_property_native("track-list")
 		if track["selected"] and accepted[track["type"]]
-			active[#active + 1] = track
+			count = #active[track["type"]]
+			active[track["type"]][count + 1] = track
 	return active
 
 append_track = (out, track) ->
@@ -30,6 +34,33 @@ append_track = (out, track) ->
 		append(out, {
 			"--#{internal_flag[track['type']]}=#{track['id']}"
 		})
+
+append_audio_tracks = (out, tracks) ->
+	-- Some additional logic is needed for audio tracks because it seems
+	-- multiple active audio tracks are a thing? We probably only can reliably
+	-- use internal tracks for this so, well, we keep track of them and see if
+	-- more than one is active.
+	internal_tracks = {}
+
+	for track in *tracks
+		if track['external']
+			-- For external tracks, just do the same thing.
+			append_track(out, track)
+		else
+			append(internal_tracks, { track })
+
+	if #internal_tracks > 1
+		-- We have multiple audio tracks, so we use a lavfi-complex
+		-- filter to mix them.
+		filter_string = ""
+		for track in *internal_tracks
+			filter_string = filter_string .. "[aid#{track['id']}]"
+		filter_string = filter_string .. "amix[ao]"
+		append(out, {
+			"--lavfi-complex=#{filter_string}"
+		})
+	else if #internal_tracks == 1
+		append_track(out, internal_tracks[1])
 
 get_scale_filters = ->
 	if options.scale_height > 0
@@ -113,16 +144,16 @@ encode = (region, startTime, endTime) ->
 		"--loop-file=no"
 	}
 
-	track_types_added =
-		"video": false
-		"audio": false
-		"sub": false
-	for _, track in ipairs get_active_tracks!
-		append_track(command, track)
-		track_types_added[track['type']] = true
+	active_tracks = get_active_tracks!
+	for track_type, tracks in pairs active_tracks
+		if track_type == "audio"
+			append_audio_tracks(command, tracks)
+		else
+			for track in *tracks
+				append_track(command, track)
 	
-	for track_type, was_added in pairs track_types_added
-		if was_added
+	for track_type, tracks in pairs active_tracks
+		if #tracks > 0
 			continue
 		switch track_type
 			when "video"
@@ -164,7 +195,7 @@ encode = (region, startTime, endTime) ->
 		if options.strict_filesize_constraint
 			-- Calculate video bitrate, assume audio is constant.
 			video_kilobits = options.target_filesize * 8
-			if track_types_added["audio"] -- compensate for audio
+			if #active_tracks["audio"] > 0 -- compensate for audio
 				video_kilobits = video_kilobits - dT * options.strict_audio_bitrate
 				append(command, {
 					"--oacopts-add=b=#{options.strict_audio_bitrate}k"

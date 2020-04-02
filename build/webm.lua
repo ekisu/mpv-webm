@@ -1190,10 +1190,15 @@ get_active_tracks = function()
     audio = not mp.get_property_bool("mute"),
     sub = mp.get_property_bool("sub-visibility")
   }
-  local active = { }
+  local active = {
+    video = { },
+    audio = { },
+    sub = { }
+  }
   for _, track in ipairs(mp.get_property_native("track-list")) do
     if track["selected"] and accepted[track["type"]] then
-      active[#active + 1] = track
+      local count = #active[track["type"]]
+      active[track["type"]][count + 1] = track
     end
   end
   return active
@@ -1217,6 +1222,35 @@ append_track = function(out, track)
     return append(out, {
       "--" .. tostring(internal_flag[track['type']]) .. "=" .. tostring(track['id'])
     })
+  end
+end
+local append_audio_tracks
+append_audio_tracks = function(out, tracks)
+  local internal_tracks = { }
+  for _index_0 = 1, #tracks do
+    local track = tracks[_index_0]
+    if track['external'] then
+      append_track(out, track)
+    else
+      append(internal_tracks, {
+        track
+      })
+    end
+  end
+  if #internal_tracks > 1 then
+    local filter_string = ""
+    for _index_0 = 1, #internal_tracks do
+      local track = internal_tracks[_index_0]
+      filter_string = filter_string .. "[aid" .. tostring(track['id']) .. "]"
+    end
+    filter_string = filter_string .. "amix[ao]"
+    return append(out, {
+      "--lavfi-complex=" .. tostring(filter_string)
+    })
+  else
+    if #internal_tracks == 1 then
+      return append_track(out, internal_tracks[1])
+    end
   end
 end
 local get_scale_filters
@@ -1328,19 +1362,21 @@ encode = function(region, startTime, endTime)
     "--oac=" .. tostring(format.audioCodec),
     "--loop-file=no"
   }
-  local track_types_added = {
-    ["video"] = false,
-    ["audio"] = false,
-    ["sub"] = false
-  }
-  for _, track in ipairs(get_active_tracks()) do
-    append_track(command, track)
-    track_types_added[track['type']] = true
+  local active_tracks = get_active_tracks()
+  for track_type, tracks in pairs(active_tracks) do
+    if track_type == "audio" then
+      append_audio_tracks(command, tracks)
+    else
+      for _index_0 = 1, #tracks do
+        local track = tracks[_index_0]
+        append_track(command, track)
+      end
+    end
   end
-  for track_type, was_added in pairs(track_types_added) do
+  for track_type, tracks in pairs(active_tracks) do
     local _continue_0 = false
     repeat
-      if was_added then
+      if #tracks > 0 then
         _continue_0 = true
         break
       end
@@ -1392,7 +1428,7 @@ encode = function(region, startTime, endTime)
     local dT = endTime - startTime
     if options.strict_filesize_constraint then
       local video_kilobits = options.target_filesize * 8
-      if track_types_added["audio"] then
+      if #active_tracks["audio"] > 0 then
         video_kilobits = video_kilobits - dT * options.strict_audio_bitrate
         append(command, {
           "--oacopts-add=b=" .. tostring(options.strict_audio_bitrate) .. "k"
