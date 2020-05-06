@@ -1478,7 +1478,7 @@ encode = function(region, startTime, endTime)
   local formatted_filename = format_filename(startTime, endTime, format)
   local out_path = utils.join_path(dir, formatted_filename)
   append(command, {
-    "-o=" .. tostring(out_path)
+    "--o=" .. tostring(out_path)
   })
   if options.twopass and format.supportsTwopass and not is_stream then
     local first_pass_cmdline

@@ -246,7 +246,7 @@ encode = (region, startTime, endTime) ->
 
 	formatted_filename = format_filename(startTime, endTime, format)
 	out_path = utils.join_path(dir, formatted_filename)
-	append(command, {"-o=#{out_path}"})
+	append(command, {"--o=#{out_path}"})
 
 	-- Do the first pass now, as it won't require the output path. I don't think this works on streams.
 	-- Also this will ignore run_detached, at least for the first pass.
