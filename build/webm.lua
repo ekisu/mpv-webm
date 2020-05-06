@@ -202,10 +202,10 @@ end
 local run_subprocess
 run_subprocess = function(params)
   local res = utils.subprocess(params)
+  msg.verbose("Command stdout: ")
+  msg.verbose(res.stdout)
   if res.status ~= 0 then
     msg.verbose("Command failed! Reason: ", res.error, " Killed by us? ", res.killed_by_us and "yes" or "no")
-    msg.verbose("Command stdout: ")
-    msg.verbose(res.stdout)
     return false
   end
   return true

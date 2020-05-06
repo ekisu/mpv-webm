@@ -89,10 +89,10 @@ get_null_path = ->
 
 run_subprocess = (params) ->
 	res = utils.subprocess(params)
+	msg.verbose("Command stdout: ")
+	msg.verbose(res.stdout)
 	if res.status != 0
 		msg.verbose("Command failed! Reason: ", res.error, " Killed by us? ", res.killed_by_us and "yes" or "no")
-		msg.verbose("Command stdout: ")
-		msg.verbose(res.stdout)
 		return false
 	return true
 
