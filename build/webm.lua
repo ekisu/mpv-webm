@@ -637,7 +637,7 @@ do
 end
 local read_logfile_into_stats_array
 read_logfile_into_stats_array = function(logfile_path)
-  local file = io.open(logfile_path, "rb")
+  local file = assert(io.open(logfile_path, "rb"))
   local logfile_string = base64_decode(file:read())
   file:close()
   local stats_size = FirstpassStats:size()
@@ -654,7 +654,7 @@ read_logfile_into_stats_array = function(logfile_path)
 end
 local write_stats_array_to_logfile
 write_stats_array_to_logfile = function(stats_array, logfile_path)
-  local file = io.open(logfile_path, "wb")
+  local file = assert(io.open(logfile_path, "wb"))
   local logfile_string = ""
   for _index_0 = 1, #stats_array do
     local stat = stats_array[_index_0]

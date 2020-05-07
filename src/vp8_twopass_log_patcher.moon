@@ -80,7 +80,7 @@ class FirstpassStats
         return before_duration_string .. duration_string .. after_duration_string
 
 read_logfile_into_stats_array = (logfile_path) ->
-    file = io.open(logfile_path, "rb")
+    file = assert(io.open(logfile_path, "rb"))
     logfile_string = base64_decode(file\read!)
     file\close!
 
@@ -96,7 +96,7 @@ read_logfile_into_stats_array = (logfile_path) ->
     return stats
 
 write_stats_array_to_logfile = (stats_array, logfile_path) ->
-    file = io.open(logfile_path, "wb")
+    file = assert(io.open(logfile_path, "wb"))
     logfile_string = ""
 
     for stat in *stats_array
