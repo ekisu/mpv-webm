@@ -80,9 +80,7 @@ class FirstpassStats
         return before_duration_string .. duration_string .. after_duration_string
 
 read_logfile_into_stats_array = (logfile_path) ->
-    file = assert(io.open(logfile_path, "rb"))
-    logfile_string = base64_decode(file\read!)
-    file\close!
+    logfile_string = base64_decode(read_file(logfile_path))
 
     stats_size = FirstpassStats\size!
 
@@ -96,14 +94,12 @@ read_logfile_into_stats_array = (logfile_path) ->
     return stats
 
 write_stats_array_to_logfile = (stats_array, logfile_path) ->
-    file = assert(io.open(logfile_path, "wb"))
     logfile_string = ""
 
     for stat in *stats_array
         logfile_string ..= stat\as_binary_string!
     
-    file\write(base64_encode(logfile_string))
-    file\close!
+    write_to_file(logfile_path, base64_encode(logfile_string))
 
 vp8_patch_logfile = (logfile_path, encode_total_duration) ->
     stats_array = read_logfile_into_stats_array(logfile_path)

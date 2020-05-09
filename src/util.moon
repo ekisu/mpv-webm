@@ -136,3 +136,48 @@ reverse = (list) ->
 
 get_pass_logfile_path = (encode_out_path) ->
 	"#{encode_out_path}-video-pass1.log"
+
+-- FIXME remove this if/whenever there's a better solution
+read_file = (path) ->
+	if is_windows
+		-- FIXME Technically this isn't the same as reading with "rb" mode,
+		-- and it might causes some issues in the future.
+		subprocess_result = utils.subprocess({
+			args: {"cmd", "/C", "type", path}
+		})
+
+		assert(subprocess_result.status == 0, "Reading file #{path} with subprocess failed!")
+		return subprocess_result.stdout
+	else
+		file = assert(io.open(path, "rb"))
+		contents = file\read!
+		file\close!
+		return contents
+
+tmpname = () ->
+	name = os.tmpname()
+	if is_windows and name\sub(1, 1) == "\\"
+		-- This indicates the filename is valid in the current dir.
+		-- Remove the starting backslash.
+		cwd = assert(utils.getcwd())
+		name = name\sub(2)
+		msg.verbose("Generating tmpname #{name} under #{cwd}")
+	
+	return name
+
+write_to_file = (path, contents) ->
+	if is_windows
+		tmp_file_path = tmpname!
+		tmp_file = assert(io.open(tmp_file_path, "wb"))
+		tmp_file\write(contents)
+		tmp_file\close!
+
+		subprocess_result = utils.subprocess({
+			args: {"cmd", "/C", "move", "/Y", tmp_file_path, path}
+		})
+
+		assert(subprocess_result.status == 0, "Couldn't move temporary file #{tmp_file_path} into #{path}")
+	else
+		file = assert(io.open(path, "wb"))
+		file\write(contents)
+		file\close!
