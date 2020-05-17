@@ -266,60 +266,6 @@ local get_pass_logfile_path
 get_pass_logfile_path = function(encode_out_path)
   return tostring(encode_out_path) .. "-video-pass1.log"
 end
-local read_file
-read_file = function(path)
-  if is_windows then
-    local subprocess_result = utils.subprocess({
-      args = {
-        "cmd",
-        "/C",
-        "type",
-        path
-      }
-    })
-    assert(subprocess_result.status == 0, "Reading file " .. tostring(path) .. " with subprocess failed!")
-    return subprocess_result.stdout
-  else
-    local file = assert(io.open(path, "rb"))
-    local contents = file:read()
-    file:close()
-    return contents
-  end
-end
-local tmpname
-tmpname = function()
-  local name = os.tmpname()
-  if is_windows and name:sub(1, 1) == "\\" then
-    local cwd = assert(utils.getcwd())
-    name = name:sub(2)
-    msg.verbose("Generating tmpname " .. tostring(name) .. " under " .. tostring(cwd))
-  end
-  return name
-end
-local write_to_file
-write_to_file = function(path, contents)
-  if is_windows then
-    local tmp_file_path = tmpname()
-    local tmp_file = assert(io.open(tmp_file_path, "wb"))
-    tmp_file:write(contents)
-    tmp_file:close()
-    local subprocess_result = utils.subprocess({
-      args = {
-        "cmd",
-        "/C",
-        "move",
-        "/Y",
-        tmp_file_path,
-        path
-      }
-    })
-    return assert(subprocess_result.status == 0, "Couldn't move temporary file " .. tostring(tmp_file_path) .. " into " .. tostring(path))
-  else
-    local file = assert(io.open(path, "wb"))
-    file:write(contents)
-    return file:close()
-  end
-end
 local dimensions_changed = true
 local _video_dimensions = { }
 local get_video_dimensions
@@ -691,7 +637,9 @@ do
 end
 local read_logfile_into_stats_array
 read_logfile_into_stats_array = function(logfile_path)
-  local logfile_string = base64_decode(read_file(logfile_path))
+  local file = assert(io.open(logfile_path, "rb"))
+  local logfile_string = base64_decode(file:read())
+  file:close()
   local stats_size = FirstpassStats:size()
   assert(logfile_string:len() % stats_size == 0)
   local stats = { }
@@ -706,12 +654,14 @@ read_logfile_into_stats_array = function(logfile_path)
 end
 local write_stats_array_to_logfile
 write_stats_array_to_logfile = function(stats_array, logfile_path)
+  local file = assert(io.open(logfile_path, "wb"))
   local logfile_string = ""
   for _index_0 = 1, #stats_array do
     local stat = stats_array[_index_0]
     logfile_string = logfile_string .. stat:as_binary_string()
   end
-  return write_to_file(logfile_path, base64_encode(logfile_string))
+  file:write(base64_encode(logfile_string))
+  return file:close()
 end
 local vp8_patch_logfile
 vp8_patch_logfile = function(logfile_path, encode_total_duration)
