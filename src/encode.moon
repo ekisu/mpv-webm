@@ -13,6 +13,17 @@ get_active_tracks = ->
 			active[track["type"]][count + 1] = track
 	return active
 
+filter_tracks_supported_by_format = (active_tracks, format) ->
+	has_video_codec = format.videoCodec != ""
+	has_audio_codec = format.audioCodec != ""
+	
+	supported =
+		video: has_video_codec and active_tracks["video"] or {}
+		audio: has_audio_codec and active_tracks["audio"] or {}
+		sub: has_video_codec and active_tracks["sub"] or {}
+	
+	return supported
+
 append_track = (out, track) ->
 	external_flag =
 		"audio": "audio-file"
@@ -125,6 +136,54 @@ apply_current_filters = (filters) ->
 			str = str .. ":#{k}=%#{string.len(v)}%#{v}"
 		append(filters, {str})
 
+get_video_filters = (format, region) ->
+	filters = {}
+	append(filters, format\getPreFilters!)
+
+	if options.apply_current_filters
+		apply_current_filters(filters)
+
+	if region and region\is_valid!
+		append(filters, {"lavfi-crop=#{region.w}:#{region.h}:#{region.x}:#{region.y}"})
+
+	append(filters, get_scale_filters!)
+
+	append(filters, format\getPostFilters!)
+
+	return filters
+
+get_video_encode_flags = (format, region) ->
+	flags = {}
+	append(flags, get_playback_options!)
+
+	filters = get_video_filters(format, region)
+	for f in *filters
+		append(flags, {
+			"--vf-add=#{f}"
+		})
+
+	append(flags, get_speed_flags!)
+	return flags
+
+calculate_bitrate = (active_tracks, format, length) ->
+	if format.videoCodec == ""
+		-- Allocate everything to the audio, not a lot we can do here
+		return nil, options.target_filesize * 8 / length
+	
+	video_kilobits = options.target_filesize * 8
+	audio_kilobits = nil
+	
+	has_audio_track = #active_tracks["audio"] > 0
+	if options.strict_filesize_constraint and has_audio_track
+		-- We only care about audio bitrate on strict encodes
+		audio_kilobits = length * options.strict_audio_bitrate
+		video_kilobits -= audio_kilobits
+	
+	video_bitrate = math.floor(video_kilobits / length)
+	audio_bitrate = audio_kilobits and math.floor(audio_kilobits / length) or nil
+
+	return video_bitrate, audio_bitrate
+
 encode = (region, startTime, endTime) ->
 	format = formats[options.output_format]
 
@@ -139,20 +198,22 @@ encode = (region, startTime, endTime) ->
 		"mpv", path,
 		"--start=" .. seconds_to_time_string(startTime, false, true),
 		"--end=" .. seconds_to_time_string(endTime, false, true),
-		"--ovc=#{format.videoCodec}", "--oac=#{format.audioCodec}",
 		-- When loop-file=inf, the encode won't end. Set this to override.
 		"--loop-file=no"
 	}
 
+	append(command, format\getCodecFlags!)
+
 	active_tracks = get_active_tracks!
-	for track_type, tracks in pairs active_tracks
+	supported_active_tracks = filter_tracks_supported_by_format(active_tracks, format)
+	for track_type, tracks in pairs supported_active_tracks
 		if track_type == "audio"
 			append_audio_tracks(command, tracks)
 		else
 			for track in *tracks
 				append_track(command, track)
 	
-	for track_type, tracks in pairs active_tracks
+	for track_type, tracks in pairs supported_active_tracks
 		if #tracks > 0
 			continue
 		switch track_type
@@ -163,62 +224,42 @@ encode = (region, startTime, endTime) ->
 			when "sub"
 				append(command, {"--sid=no"})
 
-	append(command, get_playback_options!)
-
-	filters = {}
-	append(filters, format\getPreFilters!)
-
-	if options.apply_current_filters
-		apply_current_filters(filters)
-
-	if region and region\is_valid!
-		append(filters, {"lavfi-crop=#{region.w}:#{region.h}:#{region.x}:#{region.y}"})
-
-	append(filters, get_scale_filters!)
-
-	append(filters, format\getPostFilters!)
-
-	for f in *filters
-		append(command, {
-			"--vf-add=#{f}"
-		})
-
-	append(command, get_speed_flags!)
-
+	if format.videoCodec != ""
+		-- All those are only valid for video codecs.
+		append(command, get_video_encode_flags(format, region))
+	
 	append(command, format\getFlags!)
 
 	if options.write_filename_on_metadata
 		append(command, get_metadata_flags!)
 
-	if options.target_filesize > 0 and format.acceptsBitrate
-		dT = endTime - startTime
-		if options.strict_filesize_constraint
-			-- Calculate video bitrate, assume audio is constant.
-			video_kilobits = options.target_filesize * 8
-			if #active_tracks["audio"] > 0 -- compensate for audio
-				video_kilobits = video_kilobits - dT * options.strict_audio_bitrate
+	if format.acceptsBitrate
+		if options.target_filesize > 0
+			length = endTime - startTime
+			video_bitrate, audio_bitrate = calculate_bitrate(supported_active_tracks, format, length)
+			if video_bitrate
 				append(command, {
-					"--oacopts-add=b=#{options.strict_audio_bitrate}k"
+					"--ovcopts-add=b=#{video_bitrate}k",
 				})
-			video_kilobits *= options.strict_bitrate_multiplier
-			bitrate = math.floor(video_kilobits / dT)
-			append(command, {
-				"--ovcopts-add=b=#{bitrate}k",
-				"--ovcopts-add=minrate=#{bitrate}k",
-				"--ovcopts-add=maxrate=#{bitrate}k",
-			})
+			
+			if audio_bitrate
+				append(command, {
+					"--oacopts-add=b=#{audio_bitrate}k"
+				})
+			
+			if options.strict_filesize_constraint
+				type = format.videoCodec != "" and "ovc" or "oac"
+				append(command, {
+					"--#{type}opts-add=minrate=#{bitrate}k",
+					"--#{type}opts-add=maxrate=#{bitrate}k",
+				})
 		else
-			-- Loosely set the video bitrate.
-			bitrate = math.floor(options.target_filesize * 8 / dT)
+			type = format.videoCodec != "" and "ovc" or "oac"
+			-- set video bitrate to 0. This might enable constant quality, or some
+			-- other encoding modes, depending on the codec.
 			append(command, {
-				"--ovcopts-add=b=#{bitrate}k"
+				"--#{type}opts-add=b=0"
 			})
-	elseif options.target_filesize <= 0 and format.acceptsBitrate
-		-- set video bitrate to 0. This might enable constant quality, or some
-		-- other encoding modes, depending on the codec.
-		append(command, {
-			"--ovcopts-add=b=0"
-		})
 
 	-- split the user-passed settings on whitespace
 	for token in string.gmatch(options.additional_flags, "[^%s]+") do

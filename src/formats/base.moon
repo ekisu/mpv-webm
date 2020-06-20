@@ -20,3 +20,14 @@ class Format
 
 	-- A list of flags, to be appended to the command line.
 	getFlags: => {}
+
+	-- The codec flags (ovc and oac)
+	getCodecFlags: =>
+		codecs = {}
+		if @videoCodec != ""
+			codecs[#codecs + 1] = "--ovc=#{@videoCodec}"
+		
+		if @audioCodec != ""
+			codecs[#codecs + 1] = "--oac=#{@audioCodec}"
+		
+		return codecs
