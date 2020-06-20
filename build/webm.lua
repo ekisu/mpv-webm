@@ -686,6 +686,16 @@ do
     end,
     getFlags = function(self)
       return { }
+    end,
+    getCodecFlags = function(self)
+      local codecs = { }
+      if self.videoCodec ~= "" then
+        codecs[#codecs + 1] = "--ovc=" .. tostring(self.videoCodec)
+      end
+      if self.audioCodec ~= "" then
+        codecs[#codecs + 1] = "--oac=" .. tostring(self.audioCodec)
+      end
+      return codecs
     end
   }
   _base_0.__index = _base_0
@@ -982,6 +992,50 @@ do
   MP4NVENC = _class_0
 end
 formats["mp4-nvenc"] = MP4NVENC()
+local MP3
+do
+  local _class_0
+  local _parent_0 = Format
+  local _base_0 = { }
+  _base_0.__index = _base_0
+  setmetatable(_base_0, _parent_0.__base)
+  _class_0 = setmetatable({
+    __init = function(self)
+      self.displayName = "MP3 (libmp3lame)"
+      self.supportsTwopass = false
+      self.videoCodec = ""
+      self.audioCodec = "libmp3lame"
+      self.outputExtension = "mp3"
+      self.acceptsBitrate = true
+    end,
+    __base = _base_0,
+    __name = "MP3",
+    __parent = _parent_0
+  }, {
+    __index = function(cls, name)
+      local val = rawget(_base_0, name)
+      if val == nil then
+        local parent = rawget(cls, "__parent")
+        if parent then
+          return parent[name]
+        end
+      else
+        return val
+      end
+    end,
+    __call = function(cls, ...)
+      local _self_0 = setmetatable({}, _base_0)
+      cls.__init(_self_0, ...)
+      return _self_0
+    end
+  })
+  _base_0.__class = _class_0
+  if _parent_0.__inherited then
+    _parent_0.__inherited(_parent_0, _class_0)
+  end
+  MP3 = _class_0
+end
+formats["mp3"] = MP3()
 local Page
 do
   local _class_0
@@ -1203,6 +1257,17 @@ get_active_tracks = function()
   end
   return active
 end
+local filter_tracks_supported_by_format
+filter_tracks_supported_by_format = function(active_tracks, format)
+  local has_video_codec = format.videoCodec ~= ""
+  local has_audio_codec = format.audioCodec ~= ""
+  local supported = {
+    video = has_video_codec and active_tracks["video"] or { },
+    audio = has_audio_codec and active_tracks["audio"] or { },
+    sub = has_video_codec and active_tracks["sub"] or { }
+  }
+  return supported
+end
 local append_track
 append_track = function(out, track)
   local external_flag = {
@@ -1344,6 +1409,52 @@ apply_current_filters = function(filters)
     end
   end
 end
+local get_video_filters
+get_video_filters = function(format, region)
+  local filters = { }
+  append(filters, format:getPreFilters())
+  if options.apply_current_filters then
+    apply_current_filters(filters)
+  end
+  if region and region:is_valid() then
+    append(filters, {
+      "lavfi-crop=" .. tostring(region.w) .. ":" .. tostring(region.h) .. ":" .. tostring(region.x) .. ":" .. tostring(region.y)
+    })
+  end
+  append(filters, get_scale_filters())
+  append(filters, format:getPostFilters())
+  return filters
+end
+local get_video_encode_flags
+get_video_encode_flags = function(format, region)
+  local flags = { }
+  append(flags, get_playback_options())
+  local filters = get_video_filters(format, region)
+  for _index_0 = 1, #filters do
+    local f = filters[_index_0]
+    append(flags, {
+      "--vf-add=" .. tostring(f)
+    })
+  end
+  append(flags, get_speed_flags())
+  return flags
+end
+local calculate_bitrate
+calculate_bitrate = function(active_tracks, format, length)
+  if format.videoCodec == "" then
+    return nil, options.target_filesize * 8 / length
+  end
+  local video_kilobits = options.target_filesize * 8
+  local audio_kilobits = nil
+  local has_audio_track = #active_tracks["audio"] > 0
+  if options.strict_filesize_constraint and has_audio_track then
+    audio_kilobits = length * options.strict_audio_bitrate
+    video_kilobits = video_kilobits - audio_kilobits
+  end
+  local video_bitrate = math.floor(video_kilobits / length)
+  local audio_bitrate = audio_kilobits and math.floor(audio_kilobits / length) or nil
+  return video_bitrate, audio_bitrate
+end
 local encode
 encode = function(region, startTime, endTime)
   local format = formats[options.output_format]
@@ -1358,12 +1469,12 @@ encode = function(region, startTime, endTime)
     path,
     "--start=" .. seconds_to_time_string(startTime, false, true),
     "--end=" .. seconds_to_time_string(endTime, false, true),
-    "--ovc=" .. tostring(format.videoCodec),
-    "--oac=" .. tostring(format.audioCodec),
     "--loop-file=no"
   }
+  append(command, format:getCodecFlags())
   local active_tracks = get_active_tracks()
-  for track_type, tracks in pairs(active_tracks) do
+  local supported_active_tracks = filter_tracks_supported_by_format(active_tracks, format)
+  for track_type, tracks in pairs(supported_active_tracks) do
     if track_type == "audio" then
       append_audio_tracks(command, tracks)
     else
@@ -1373,7 +1484,7 @@ encode = function(region, startTime, endTime)
       end
     end
   end
-  for track_type, tracks in pairs(active_tracks) do
+  for track_type, tracks in pairs(supported_active_tracks) do
     local _continue_0 = false
     repeat
       if #tracks > 0 then
@@ -1400,57 +1511,40 @@ encode = function(region, startTime, endTime)
       break
     end
   end
-  append(command, get_playback_options())
-  local filters = { }
-  append(filters, format:getPreFilters())
-  if options.apply_current_filters then
-    apply_current_filters(filters)
+  if format.videoCodec ~= "" then
+    append(command, get_video_encode_flags(format, region))
   end
-  if region and region:is_valid() then
-    append(filters, {
-      "lavfi-crop=" .. tostring(region.w) .. ":" .. tostring(region.h) .. ":" .. tostring(region.x) .. ":" .. tostring(region.y)
-    })
-  end
-  append(filters, get_scale_filters())
-  append(filters, format:getPostFilters())
-  for _index_0 = 1, #filters do
-    local f = filters[_index_0]
-    append(command, {
-      "--vf-add=" .. tostring(f)
-    })
-  end
-  append(command, get_speed_flags())
   append(command, format:getFlags())
   if options.write_filename_on_metadata then
     append(command, get_metadata_flags())
   end
-  if options.target_filesize > 0 and format.acceptsBitrate then
-    local dT = endTime - startTime
-    if options.strict_filesize_constraint then
-      local video_kilobits = options.target_filesize * 8
-      if #active_tracks["audio"] > 0 then
-        video_kilobits = video_kilobits - dT * options.strict_audio_bitrate
+  if format.acceptsBitrate then
+    if options.target_filesize > 0 then
+      local length = endTime - startTime
+      local video_bitrate, audio_bitrate = calculate_bitrate(supported_active_tracks, format, length)
+      if video_bitrate then
         append(command, {
-          "--oacopts-add=b=" .. tostring(options.strict_audio_bitrate) .. "k"
+          "--ovcopts-add=b=" .. tostring(video_bitrate) .. "k"
         })
       end
-      video_kilobits = video_kilobits * options.strict_bitrate_multiplier
-      local bitrate = math.floor(video_kilobits / dT)
-      append(command, {
-        "--ovcopts-add=b=" .. tostring(bitrate) .. "k",
-        "--ovcopts-add=minrate=" .. tostring(bitrate) .. "k",
-        "--ovcopts-add=maxrate=" .. tostring(bitrate) .. "k"
-      })
+      if audio_bitrate then
+        append(command, {
+          "--oacopts-add=b=" .. tostring(audio_bitrate) .. "k"
+        })
+      end
+      if options.strict_filesize_constraint then
+        local type = format.videoCodec ~= "" and "ovc" or "oac"
+        append(command, {
+          "--" .. tostring(type) .. "opts-add=minrate=" .. tostring(bitrate) .. "k",
+          "--" .. tostring(type) .. "opts-add=maxrate=" .. tostring(bitrate) .. "k"
+        })
+      end
     else
-      local bitrate = math.floor(options.target_filesize * 8 / dT)
+      local type = format.videoCodec ~= "" and "ovc" or "oac"
       append(command, {
-        "--ovcopts-add=b=" .. tostring(bitrate) .. "k"
+        "--" .. tostring(type) .. "opts-add=b=0"
       })
     end
-  elseif options.target_filesize <= 0 and format.acceptsBitrate then
-    append(command, {
-      "--ovcopts-add=b=0"
-    })
   end
   for token in string.gmatch(options.additional_flags, "[^%s]+") do
     command[#command + 1] = token
@@ -1964,7 +2058,8 @@ do
         "webm-vp9",
         "mp4",
         "mp4-nvenc",
-        "raw"
+        "raw",
+        "mp3"
       }
       local formatOpts = {
         possibleValues = (function()
