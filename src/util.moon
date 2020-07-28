@@ -37,7 +37,28 @@ file_exists = (name) ->
 	return false
 
 format_filename = (startTime, endTime, videoFormat) ->
+	replaceFirst =
+		"%%mp": "%%mH.%%mM.%%mS"
+		"%%mP": "%%mH.%%mM.%%mS.%%mT"
+		"%%p": "%%wH.%%wM.%%wS"
+		"%%P": "%%wH.%%wM.%%wS.%%wT"
 	replaceTable =
+		"%%wH": string.format("%02d", math.floor(startTime/(60*60)))
+		"%%wh": string.format("%d", math.floor(startTime/(60*60)))
+		"%%wM": string.format("%02d", math.floor(startTime/60%60))
+		"%%wm": string.format("%d", math.floor(startTime/60))
+		"%%wS": string.format("%02d", math.floor(startTime%60))
+		"%%ws": string.format("%d", math.floor(startTime))
+		"%%wf": string.format("%s", startTime)
+		"%%wT": string.sub(string.format("%.3f", startTime%1), 3)
+		"%%mH": string.format("%02d", math.floor(endTime/(60*60)))
+		"%%mh": string.format("%d", math.floor(endTime/(60*60)))
+		"%%mM": string.format("%02d", math.floor(endTime/60%60))
+		"%%mm": string.format("%d", math.floor(endTime/60))
+		"%%mS": string.format("%02d", math.floor(endTime%60))
+		"%%ms": string.format("%d", math.floor(endTime))
+		"%%mf": string.format("%s", endTime)
+		"%%mT": string.sub(string.format("%.3f", endTime%1), 3)
 		"%%f": mp.get_property("filename")
 		"%%F": mp.get_property("filename/no-ext")
 		"%%s": seconds_to_path_element(startTime)
@@ -47,10 +68,33 @@ format_filename = (startTime, endTime, videoFormat) ->
 		"%%T": mp.get_property("media-title")
 		"%%M": (mp.get_property_native('aid') and not mp.get_property_native('mute')) and '-audio' or ''
 		"%%R": (options.scale_height != -1) and "-#{options.scale_height}p" or "-#{mp.get_property_native('height')}p"
+		"%%t%%": "%%"
 	filename = options.output_template
 
+	for format, value in pairs replaceFirst
+		filename, _ = filename\gsub(format, value)
 	for format, value in pairs replaceTable
 		filename, _ = filename\gsub(format, value)
+
+	if mp.get_property_bool("demuxer-via-network", false)
+		filename, _ = filename\gsub("%%X{([^}]*)}", "%1")
+		filename, _ = filename\gsub("%%x", "")
+	else
+		x = string.gsub(mp.get_property("stream-open-filename", ""), string.gsub(mp.get_property("filename", ""), "%W", "%%%1") .. "$", "")
+		filename, _ = filename\gsub("%%X{[^}]*}", x)
+		filename, _ = filename\gsub("%%x", x)
+
+	for prop, colon, fallback in filename\gmatch("%%{([^}:]*)(:?)([^}]*)}")
+		local prop_value
+		if colon == ":" then
+			prop_value = mp.get_property(prop, fallback)
+		else
+			prop_value = mp.get_property(prop, "(error)")
+		filename, _ = filename\gsub("%%{" .. prop\gsub("%W", "%%%1") .. "}", prop_value)
+		filename, _ = filename\gsub("%%{" .. prop\gsub("%W", "%%%1") .. ":[^}]*}", prop_value)
+
+	for format in filename\gmatch("%%t([aAbBcCdDeFgGhHIjmMnprRStTuUVwWxXyYzZ])")
+		filename, _ = filename\gsub("%%t" .. format, os.date("%" .. format))
 
 	-- Remove invalid chars
 	-- Windows: < > : " / \ | ? *

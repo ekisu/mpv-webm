@@ -147,7 +147,29 @@ file_exists = function(name)
 end
 local format_filename
 format_filename = function(startTime, endTime, videoFormat)
+  local replaceFirst = {
+    ["%%mp"] = "%%mH.%%mM.%%mS",
+    ["%%mP"] = "%%mH.%%mM.%%mS.%%mT",
+    ["%%p"] = "%%wH.%%wM.%%wS",
+    ["%%P"] = "%%wH.%%wM.%%wS.%%wT"
+  }
   local replaceTable = {
+    ["%%wH"] = string.format("%02d", math.floor(startTime / (60 * 60))),
+    ["%%wh"] = string.format("%d", math.floor(startTime / (60 * 60))),
+    ["%%wM"] = string.format("%02d", math.floor(startTime / 60 % 60)),
+    ["%%wm"] = string.format("%d", math.floor(startTime / 60)),
+    ["%%wS"] = string.format("%02d", math.floor(startTime % 60)),
+    ["%%ws"] = string.format("%d", math.floor(startTime)),
+    ["%%wf"] = string.format("%s", startTime),
+    ["%%wT"] = string.sub(string.format("%.3f", startTime % 1), 3),
+    ["%%mH"] = string.format("%02d", math.floor(endTime / (60 * 60))),
+    ["%%mh"] = string.format("%d", math.floor(endTime / (60 * 60))),
+    ["%%mM"] = string.format("%02d", math.floor(endTime / 60 % 60)),
+    ["%%mm"] = string.format("%d", math.floor(endTime / 60)),
+    ["%%mS"] = string.format("%02d", math.floor(endTime % 60)),
+    ["%%ms"] = string.format("%d", math.floor(endTime)),
+    ["%%mf"] = string.format("%s", endTime),
+    ["%%mT"] = string.sub(string.format("%.3f", endTime % 1), 3),
     ["%%f"] = mp.get_property("filename"),
     ["%%F"] = mp.get_property("filename/no-ext"),
     ["%%s"] = seconds_to_path_element(startTime),
@@ -156,12 +178,42 @@ format_filename = function(startTime, endTime, videoFormat)
     ["%%E"] = seconds_to_path_element(endTime, true),
     ["%%T"] = mp.get_property("media-title"),
     ["%%M"] = (mp.get_property_native('aid') and not mp.get_property_native('mute')) and '-audio' or '',
-    ["%%R"] = (options.scale_height ~= -1) and "-" .. tostring(options.scale_height) .. "p" or "-" .. tostring(mp.get_property_native('height')) .. "p"
+    ["%%R"] = (options.scale_height ~= -1) and "-" .. tostring(options.scale_height) .. "p" or "-" .. tostring(mp.get_property_native('height')) .. "p",
+    ["%%t%%"] = "%%"
   }
   local filename = options.output_template
+  for format, value in pairs(replaceFirst) do
+    local _
+    filename, _ = filename:gsub(format, value)
+  end
   for format, value in pairs(replaceTable) do
     local _
     filename, _ = filename:gsub(format, value)
+  end
+  if mp.get_property_bool("demuxer-via-network", false) then
+    local _
+    filename, _ = filename:gsub("%%X{([^}]*)}", "%1")
+    filename, _ = filename:gsub("%%x", "")
+  else
+    local x = string.gsub(mp.get_property("stream-open-filename", ""), string.gsub(mp.get_property("filename", ""), "%W", "%%%1") .. "$", "")
+    local _
+    filename, _ = filename:gsub("%%X{[^}]*}", x)
+    filename, _ = filename:gsub("%%x", x)
+  end
+  for prop, colon, fallback in filename:gmatch("%%{([^}:]*)(:?)([^}]*)}") do
+    local prop_value
+    if colon == ":" then
+      prop_value = mp.get_property(prop, fallback)
+    else
+      prop_value = mp.get_property(prop, "(error)")
+    end
+    local _
+    filename, _ = filename:gsub("%%{" .. prop:gsub("%W", "%%%1") .. "}", prop_value)
+    filename, _ = filename:gsub("%%{" .. prop:gsub("%W", "%%%1") .. ":[^}]*}", prop_value)
+  end
+  for format in filename:gmatch("%%t([aAbBcCdDeFgGhHIjmMnprRStTuUVwWxXyYzZ])") do
+    local _
+    filename, _ = filename:gsub("%%t" .. format, os.date("%" .. format))
   end
   local _
   filename, _ = filename:gsub("[<>:\"/\\|?*]", "")
