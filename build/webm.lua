@@ -23,6 +23,8 @@ local options = {
 	-- %S, %E - Start and end time, without milliseconds
 	-- %M - "-audio", if audio is enabled, empty otherwise
 	-- %R - "-(height)p", where height is the video's height, or scale_height, if it's enabled.
+	-- More specifiers are supported, see https://mpv.io/manual/master/#options-screenshot-template
+	-- Property expansion is supported (with %{} at top level, ${} when nested), see https://mpv.io/manual/master/#property-expansion
 	output_template = "%F-[%s-%e]%M",
 	-- Scale video to a certain height, keeping the aspect ratio. -1 disables it.
 	scale_height = -1,
@@ -145,6 +147,58 @@ file_exists = function(name)
   end
   return false
 end
+local expand_properties
+expand_properties = function(text, magic)
+  if magic == nil then
+    magic = "$"
+  end
+  for prefix, raw, prop, colon, fallback, closing in text:gmatch("%" .. magic .. "{([?!]?)(=?)([^}:]*)(:?)([^}]*)(}*)}") do
+    local err
+    local prop_value
+    local compare_value
+    local original_prop = prop
+    local get_property = mp.get_property_osd
+    if raw == "=" then
+      get_property = mp.get_property
+    end
+    if prefix ~= "" then
+      for actual_prop, compare in prop:gmatch("(.-)==(.*)") do
+        prop = actual_prop
+        compare_value = compare
+      end
+    end
+    if colon == ":" then
+      prop_value, err = get_property(prop, fallback)
+    else
+      prop_value, err = get_property(prop, "(error)")
+    end
+    prop_value = tostring(prop_value)
+    if prefix == "?" then
+      if compare_value == nil then
+        prop_value = err == nil and fallback .. closing or ""
+      else
+        prop_value = prop_value == compare_value and fallback .. closing or ""
+      end
+      prefix = "%" .. prefix
+    elseif prefix == "!" then
+      if compare_value == nil then
+        prop_value = err ~= nil and fallback .. closing or ""
+      else
+        prop_value = prop_value ~= compare_value and fallback .. closing or ""
+      end
+    else
+      prop_value = prop_value .. closing
+    end
+    if colon == ":" then
+      local _
+      text, _ = text:gsub("%" .. magic .. "{" .. prefix .. raw .. original_prop:gsub("%W", "%%%1") .. ":" .. fallback:gsub("%W", "%%%1") .. closing .. "}", expand_properties(prop_value))
+    else
+      local _
+      text, _ = text:gsub("%" .. magic .. "{" .. prefix .. raw .. original_prop:gsub("%W", "%%%1") .. closing .. "}", prop_value)
+    end
+  end
+  return text
+end
 local format_filename
 format_filename = function(startTime, endTime, videoFormat)
   local replaceFirst = {
@@ -200,17 +254,7 @@ format_filename = function(startTime, endTime, videoFormat)
     filename, _ = filename:gsub("%%X{[^}]*}", x)
     filename, _ = filename:gsub("%%x", x)
   end
-  for prop, colon, fallback in filename:gmatch("%%{([^}:]*)(:?)([^}]*)}") do
-    local prop_value
-    if colon == ":" then
-      prop_value = mp.get_property(prop, fallback)
-    else
-      prop_value = mp.get_property(prop, "(error)")
-    end
-    local _
-    filename, _ = filename:gsub("%%{" .. prop:gsub("%W", "%%%1") .. "}", prop_value)
-    filename, _ = filename:gsub("%%{" .. prop:gsub("%W", "%%%1") .. ":[^}]*}", prop_value)
-  end
+  filename = expand_properties(filename, "%")
   for format in filename:gmatch("%%t([aAbBcCdDeFgGhHIjmMnprRStTuUVwWxXyYzZ])") do
     local _
     filename, _ = filename:gsub("%%t" .. format, os.date("%" .. format))
