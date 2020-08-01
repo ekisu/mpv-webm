@@ -36,6 +36,49 @@ file_exists = (name) ->
 		return true
 	return false
 
+expand_properties = (text, magic="$") ->
+	for prefix, raw, prop, colon, fallback, closing in text\gmatch("%" .. magic .. "{([?!]?)(=?)([^}:]*)(:?)([^}]*)(}*)}")
+		local err
+		local prop_value
+		local compare_value
+		original_prop = prop
+		get_property = mp.get_property_osd
+
+		if raw == "="
+			get_property = mp.get_property
+
+		if prefix ~= ""
+			for actual_prop, compare in prop\gmatch("(.-)==(.*)")
+				prop = actual_prop
+				compare_value = compare
+
+		if colon == ":"
+			prop_value, err = get_property(prop, fallback)
+		else
+			prop_value, err = get_property(prop, "(error)")
+		prop_value = tostring(prop_value)
+
+		if prefix == "?"
+			if compare_value == nil
+				prop_value = err == nil and fallback .. closing or ""
+			else
+				prop_value = prop_value == compare_value and fallback .. closing or ""
+			prefix = "%" .. prefix
+		elseif prefix == "!"
+			if compare_value == nil
+				prop_value = err ~= nil and fallback .. closing or ""
+			else
+				prop_value = prop_value ~= compare_value and fallback .. closing or ""
+		else
+			prop_value = prop_value .. closing
+
+		if colon == ":"
+			text, _ = text\gsub("%" .. magic .. "{" .. prefix .. raw .. original_prop\gsub("%W", "%%%1") .. ":" .. fallback\gsub("%W", "%%%1") .. closing .. "}", expand_properties(prop_value))
+		else
+			text, _ = text\gsub("%" .. magic .. "{" .. prefix .. raw .. original_prop\gsub("%W", "%%%1") .. closing .. "}", prop_value)
+
+	return text
+
 format_filename = (startTime, endTime, videoFormat) ->
 	replaceFirst =
 		"%%mp": "%%mH.%%mM.%%mS"
@@ -84,14 +127,7 @@ format_filename = (startTime, endTime, videoFormat) ->
 		filename, _ = filename\gsub("%%X{[^}]*}", x)
 		filename, _ = filename\gsub("%%x", x)
 
-	for prop, colon, fallback in filename\gmatch("%%{([^}:]*)(:?)([^}]*)}")
-		local prop_value
-		if colon == ":" then
-			prop_value = mp.get_property(prop, fallback)
-		else
-			prop_value = mp.get_property(prop, "(error)")
-		filename, _ = filename\gsub("%%{" .. prop\gsub("%W", "%%%1") .. "}", prop_value)
-		filename, _ = filename\gsub("%%{" .. prop\gsub("%W", "%%%1") .. ":[^}]*}", prop_value)
+	filename = expand_properties(filename, "%")
 
 	for format in filename\gmatch("%%t([aAbBcCdDeFgGhHIjmMnprRStTuUVwWxXyYzZ])")
 		filename, _ = filename\gsub("%%t" .. format, os.date("%" .. format))
