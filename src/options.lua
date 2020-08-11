@@ -23,6 +23,9 @@ local options = {
 	output_template = "%F-[%s-%e]%M",
 	-- Scale video to a certain height, keeping the aspect ratio. -1 disables it.
 	scale_height = -1,
+	-- Change the FPS of the output video, dropping or duplicating frames as needed.
+	-- -1 means the FPS will be unchanged from the source.
+	fps = -1,
 	-- Target filesize, in kB. This will be used to calculate the bitrate
 	-- used on the encode. If this is set to <= 0, the video bitrate will be set
 	-- to 0, which might enable constant quality modes, depending on the

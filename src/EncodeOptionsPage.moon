@@ -140,6 +140,9 @@ class EncodeOptionsPage extends Page
 			altDisplayNames:
 				[-1]: "disabled"
 
+		fpsOpts =
+			possibleValues: {{-1, "source"}, {15}, {24}, {30}, {48}, {50}, {60}, {120}, {240}}
+
 		-- I really dislike hardcoding this here, but, as said below, order in dicts isn't
 		-- guaranteed, and we can't use the formats dict keys.
 		formatIds = {"webm-vp8", "webm-vp9", "mp4", "mp4-nvenc", "raw", "mp3"}
@@ -156,7 +159,8 @@ class EncodeOptionsPage extends Page
 			{"strict_filesize_constraint", Option("bool", "Strict Filesize Constraint", options.strict_filesize_constraint)},
 			{"write_filename_on_metadata", Option("bool", "Write Filename on Metadata", options.write_filename_on_metadata)},
 			{"target_filesize", Option("int", "Target Filesize", options.target_filesize, filesizeOpts)},
-			{"crf", Option("int", "CRF", options.crf, crfOpts)}
+			{"crf", Option("int", "CRF", options.crf, crfOpts)},
+			{"fps", Option("list", "FPS", options.fps, fpsOpts)},
 		}
 
 		@keybinds =
