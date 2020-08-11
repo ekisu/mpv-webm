@@ -28,6 +28,9 @@ local options = {
 	output_template = "%F-[%s-%e]%M",
 	-- Scale video to a certain height, keeping the aspect ratio. -1 disables it.
 	scale_height = -1,
+	-- Change the FPS of the output video, dropping or duplicating frames as needed.
+	-- -1 means the FPS will be unchanged from the source.
+	fps = -1,
 	-- Target filesize, in kB. This will be used to calculate the bitrate
 	-- used on the encode. If this is set to <= 0, the video bitrate will be set
 	-- to 0, which might enable constant quality modes, depending on the
@@ -1423,6 +1426,15 @@ get_scale_filters = function()
   end
   return { }
 end
+local get_fps_filters
+get_fps_filters = function()
+  if options.fps > 0 then
+    return {
+      "fps=" .. tostring(options.fps)
+    }
+  end
+  return { }
+end
 local append_property
 append_property = function(out, property_name, option_name)
   option_name = option_name or property_name
@@ -1518,6 +1530,7 @@ get_video_filters = function(format, region)
     })
   end
   append(filters, get_scale_filters())
+  append(filters, get_fps_filters())
   append(filters, format:getPostFilters())
   return filters
 end
@@ -2149,6 +2162,38 @@ do
           [-1] = "disabled"
         }
       }
+      local fpsOpts = {
+        possibleValues = {
+          {
+            -1,
+            "source"
+          },
+          {
+            15
+          },
+          {
+            24
+          },
+          {
+            30
+          },
+          {
+            48
+          },
+          {
+            50
+          },
+          {
+            60
+          },
+          {
+            120
+          },
+          {
+            240
+          }
+        }
+      }
       local formatIds = {
         "webm-vp8",
         "webm-vp9",
@@ -2204,6 +2249,10 @@ do
         {
           "crf",
           Option("int", "CRF", options.crf, crfOpts)
+        },
+        {
+          "fps",
+          Option("list", "FPS", options.fps, fpsOpts)
         }
       }
       self.keybinds = {

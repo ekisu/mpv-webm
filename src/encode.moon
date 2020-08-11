@@ -78,6 +78,11 @@ get_scale_filters = ->
 		return {"lavfi-scale=-2:#{options.scale_height}"}
 	return {}
 
+get_fps_filters = ->
+	if options.fps > 0
+		return {"fps=#{options.fps}"}
+	return {}
+
 append_property = (out, property_name, option_name) ->
 	option_name = option_name or property_name
 	prop = mp.get_property(property_name)
@@ -147,6 +152,7 @@ get_video_filters = (format, region) ->
 		append(filters, {"lavfi-crop=#{region.w}:#{region.h}:#{region.x}:#{region.y}"})
 
 	append(filters, get_scale_filters!)
+	append(filters, get_fps_filters!)
 
 	append(filters, format\getPostFilters!)
 
