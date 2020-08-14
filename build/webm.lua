@@ -1451,6 +1451,7 @@ get_playback_options = function()
   local ret = { }
   append_property(ret, "sub-ass-override")
   append_property(ret, "sub-ass-force-style")
+  append_property(ret, "sub-ass-vsfilter-aspect-compat")
   append_property(ret, "sub-auto")
   append_property(ret, "sub-delay")
   append_property(ret, "video-rotate")
