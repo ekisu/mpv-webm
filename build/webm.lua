@@ -201,6 +201,7 @@ expand_properties = function(text, magic)
 end
 local format_filename
 format_filename = function(startTime, endTime, videoFormat)
+  local hasAudioCodec = videoFormat.audioCodec ~= ""
   local replaceFirst = {
     ["%%mp"] = "%%mH.%%mM.%%mS",
     ["%%mP"] = "%%mH.%%mM.%%mS.%%mT",
@@ -231,7 +232,7 @@ format_filename = function(startTime, endTime, videoFormat)
     ["%%e"] = seconds_to_path_element(endTime),
     ["%%E"] = seconds_to_path_element(endTime, true),
     ["%%T"] = mp.get_property("media-title"),
-    ["%%M"] = (mp.get_property_native('aid') and not mp.get_property_native('mute')) and '-audio' or '',
+    ["%%M"] = (mp.get_property_native('aid') and not mp.get_property_native('mute') and hasAudioCodec) and '-audio' or '',
     ["%%R"] = (options.scale_height ~= -1) and "-" .. tostring(options.scale_height) .. "p" or "-" .. tostring(mp.get_property_native('height')) .. "p",
     ["%%t%%"] = "%%"
   }
@@ -1132,6 +1133,50 @@ do
   MP3 = _class_0
 end
 formats["mp3"] = MP3()
+local GIF
+do
+  local _class_0
+  local _parent_0 = Format
+  local _base_0 = { }
+  _base_0.__index = _base_0
+  setmetatable(_base_0, _parent_0.__base)
+  _class_0 = setmetatable({
+    __init = function(self)
+      self.displayName = "GIF"
+      self.supportsTwopass = false
+      self.videoCodec = "gif"
+      self.audioCodec = ""
+      self.outputExtension = "gif"
+      self.acceptsBitrate = false
+    end,
+    __base = _base_0,
+    __name = "GIF",
+    __parent = _parent_0
+  }, {
+    __index = function(cls, name)
+      local val = rawget(_base_0, name)
+      if val == nil then
+        local parent = rawget(cls, "__parent")
+        if parent then
+          return parent[name]
+        end
+      else
+        return val
+      end
+    end,
+    __call = function(cls, ...)
+      local _self_0 = setmetatable({}, _base_0)
+      cls.__init(_self_0, ...)
+      return _self_0
+    end
+  })
+  _base_0.__class = _class_0
+  if _parent_0.__inherited then
+    _parent_0.__inherited(_parent_0, _class_0)
+  end
+  GIF = _class_0
+end
+formats["gif"] = GIF()
 local Page
 do
   local _class_0
@@ -2155,7 +2200,8 @@ do
         "mp4",
         "mp4-nvenc",
         "raw",
-        "mp3"
+        "mp3",
+        "gif"
       }
       local formatOpts = {
         possibleValues = (function()
