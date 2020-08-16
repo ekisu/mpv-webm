@@ -80,6 +80,7 @@ expand_properties = (text, magic="$") ->
 	return text
 
 format_filename = (startTime, endTime, videoFormat) ->
+	hasAudioCodec = videoFormat.audioCodec != ""
 	replaceFirst =
 		"%%mp": "%%mH.%%mM.%%mS"
 		"%%mP": "%%mH.%%mM.%%mS.%%mT"
@@ -109,7 +110,7 @@ format_filename = (startTime, endTime, videoFormat) ->
 		"%%e": seconds_to_path_element(endTime)
 		"%%E": seconds_to_path_element(endTime, true)
 		"%%T": mp.get_property("media-title")
-		"%%M": (mp.get_property_native('aid') and not mp.get_property_native('mute')) and '-audio' or ''
+		"%%M": (mp.get_property_native('aid') and not mp.get_property_native('mute') and hasAudioCodec) and '-audio' or ''
 		"%%R": (options.scale_height != -1) and "-#{options.scale_height}p" or "-#{mp.get_property_native('height')}p"
 		"%%t%%": "%%"
 	filename = options.output_template
