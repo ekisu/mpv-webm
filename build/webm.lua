@@ -1624,7 +1624,8 @@ encode = function(region, startTime, endTime)
     path,
     "--start=" .. seconds_to_time_string(startTime, false, true),
     "--end=" .. seconds_to_time_string(endTime, false, true),
-    "--loop-file=no"
+    "--loop-file=no",
+    "--no-pause"
   }
   append(command, format:getCodecFlags())
   local active_tracks = get_active_tracks()
