@@ -1637,6 +1637,8 @@ end
 local encode
 encode = function(region, startTime, endTime)
   local format = formats[options.output_format]
+  local originalStartTime = startTime
+  local originalEndTime = endTime
   local path, is_temporary, is_stream
   path, is_temporary, is_stream, startTime, endTime = find_path(startTime, endTime)
   if not path then
@@ -1749,7 +1751,7 @@ encode = function(region, startTime, endTime)
   if options.output_directory ~= "" then
     dir = parse_directory(options.output_directory)
   end
-  local formatted_filename = format_filename(startTime, endTime, format)
+  local formatted_filename = format_filename(originalStartTime, originalEndTime, format)
   local out_path = utils.join_path(dir, formatted_filename)
   append(command, {
     "--o=" .. tostring(out_path)

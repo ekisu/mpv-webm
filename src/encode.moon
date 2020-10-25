@@ -218,6 +218,8 @@ find_path = (startTime, endTime) ->
 encode = (region, startTime, endTime) ->
 	format = formats[options.output_format]
 
+	originalStartTime = startTime
+	originalEndTime = endTime
 	path, is_temporary, is_stream, startTime, endTime = find_path(startTime, endTime) 
 	if not path
 		message("No file is being played")
@@ -316,7 +318,7 @@ encode = (region, startTime, endTime) ->
 	if options.output_directory != ""
 		dir = parse_directory(options.output_directory)
 
-	formatted_filename = format_filename(startTime, endTime, format)
+	formatted_filename = format_filename(originalStartTime, originalEndTime, format)
 	out_path = utils.join_path(dir, formatted_filename)
 	append(command, {"--o=#{out_path}"})
 
