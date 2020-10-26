@@ -191,15 +191,39 @@ calculate_bitrate = (active_tracks, format, length) ->
 
 	return video_bitrate, audio_bitrate
 
+find_path = (startTime, endTime) ->
+	path = mp.get_property('path')
+	if not path
+		return nil, nil, nil, nil, nil
+	
+	is_stream = not file_exists(path)
+	is_temporary = false
+	if is_stream
+		if mp.get_property('file-format') == 'hls'
+			-- Attempt to dump the stream cache into a temporary file
+			path = utils.join_path(parse_directory('~'), 'cache_dump.ts')
+			mp.command_native({
+				'dump_cache',
+				seconds_to_time_string(startTime, false, true),
+				seconds_to_time_string(endTime + 5, false, true),
+				path
+			})
+
+			endTime = endTime - startTime
+			startTime = 0
+			is_temporary = true
+
+	return path, is_stream, is_temporary, startTime, endTime
+
 encode = (region, startTime, endTime) ->
 	format = formats[options.output_format]
 
-	path = mp.get_property("path")
+	originalStartTime = startTime
+	originalEndTime = endTime
+	path, is_temporary, is_stream, startTime, endTime = find_path(startTime, endTime) 
 	if not path
 		message("No file is being played")
 		return
-
-	is_stream = not file_exists(path)
 
 	command = {
 		"mpv", path,
@@ -294,7 +318,7 @@ encode = (region, startTime, endTime) ->
 	if options.output_directory != ""
 		dir = parse_directory(options.output_directory)
 
-	formatted_filename = format_filename(startTime, endTime, format)
+	formatted_filename = format_filename(originalStartTime, originalEndTime, format)
 	out_path = utils.join_path(dir, formatted_filename)
 	append(command, {"--o=#{out_path}"})
 
@@ -344,3 +368,5 @@ encode = (region, startTime, endTime) ->
 		
 		-- Clean up pass log file.
 		os.remove(get_pass_logfile_path(out_path))
+		if is_temporary
+			os.remove(path)

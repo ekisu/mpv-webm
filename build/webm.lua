@@ -1610,15 +1610,41 @@ calculate_bitrate = function(active_tracks, format, length)
   local audio_bitrate = audio_kilobits and math.floor(audio_kilobits / length) or nil
   return video_bitrate, audio_bitrate
 end
+local find_path
+find_path = function(startTime, endTime)
+  local path = mp.get_property('path')
+  if not path then
+    return nil, nil, nil, nil, nil
+  end
+  local is_stream = not file_exists(path)
+  local is_temporary = false
+  if is_stream then
+    if mp.get_property('file-format') == 'hls' then
+      path = utils.join_path(parse_directory('~'), 'cache_dump.ts')
+      mp.command_native({
+        'dump_cache',
+        seconds_to_time_string(startTime, false, true),
+        seconds_to_time_string(endTime + 5, false, true),
+        path
+      })
+      endTime = endTime - startTime
+      startTime = 0
+      is_temporary = true
+    end
+  end
+  return path, is_stream, is_temporary, startTime, endTime
+end
 local encode
 encode = function(region, startTime, endTime)
   local format = formats[options.output_format]
-  local path = mp.get_property("path")
+  local originalStartTime = startTime
+  local originalEndTime = endTime
+  local path, is_temporary, is_stream
+  path, is_temporary, is_stream, startTime, endTime = find_path(startTime, endTime)
   if not path then
     message("No file is being played")
     return 
   end
-  local is_stream = not file_exists(path)
   local command = {
     "mpv",
     path,
@@ -1725,7 +1751,7 @@ encode = function(region, startTime, endTime)
   if options.output_directory ~= "" then
     dir = parse_directory(options.output_directory)
   end
-  local formatted_filename = format_filename(startTime, endTime, format)
+  local formatted_filename = format_filename(originalStartTime, originalEndTime, format)
   local out_path = utils.join_path(dir, formatted_filename)
   append(command, {
     "--o=" .. tostring(out_path)
@@ -1787,7 +1813,10 @@ encode = function(region, startTime, endTime)
     else
       message("Encode failed! Check the logs for details.")
     end
-    return os.remove(get_pass_logfile_path(out_path))
+    os.remove(get_pass_logfile_path(out_path))
+    if is_temporary then
+      return os.remove(path)
+    end
   end
 end
 local CropPage
