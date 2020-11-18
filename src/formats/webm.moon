@@ -35,7 +35,7 @@ class WebmVP9 extends Format
 		@displayName = "WebM (VP9)"
 		@supportsTwopass = true
 		@videoCodec = "libvpx-vp9"
-		@audioCodec = "libvorbis"
+		@audioCodec = "libopus"
 		@outputExtension = "webm"
 		@acceptsBitrate = true
 

@@ -45,7 +45,7 @@ local options = {
 	-- In kilobits.
 	strict_audio_bitrate = 64,
 	-- Sets the output format, from a few predefined ones.
-	-- Currently we have webm-vp8 (libvpx/libvorbis), webm-vp9 (libvpx-vp9/libvorbis)
+	-- Currently we have webm-vp8 (libvpx/libvorbis), webm-vp9 (libvpx-vp9/libopus)
 	-- and raw (rawvideo/pcm_s16le).
 	output_format = "webm-vp8",
 	twopass = false,
@@ -972,7 +972,7 @@ do
       self.displayName = "WebM (VP9)"
       self.supportsTwopass = true
       self.videoCodec = "libvpx-vp9"
-      self.audioCodec = "libvorbis"
+      self.audioCodec = "libopus"
       self.outputExtension = "webm"
       self.acceptsBitrate = true
     end,
