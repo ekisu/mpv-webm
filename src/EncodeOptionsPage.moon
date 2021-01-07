@@ -127,7 +127,7 @@ class EncodeOptionsPage extends Page
 		@currentOption = 1
 		-- TODO this shouldn't be here.
 		scaleHeightOpts =
-			possibleValues: {{-1, "no"}, {240}, {360}, {480}, {720}, {1080}, {1440}, {2160}}
+			possibleValues: {{-1, "no"}, {240}, {360}, {480}, {540}, {720}, {1080}, {1440}, {2160}}
 		filesizeOpts =
 			step: 250
 			min: 0
