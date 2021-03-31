@@ -4,6 +4,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - run: apt-get install lua5.1 luarocks make
-      - run: luarocks install moonscript
+      - run: sudo apt-get install -y lua5.1 luarocks make
+      - run: sudo luarocks install moonscript
       - run: make
