@@ -8,9 +8,12 @@ jobs:
       - run: sudo apt-get install -y lua5.1 luarocks make
       - run: sudo luarocks install moonscript
       - run: make
-      - uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
+      - uses: "marvinpinto/action-automatic-releases@latest"
+        if: ${{ github.ref == 'refs/heads/master' }}
         with:
-          files: build/webm.lua
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          automatic_release_tag: "latest"
+          prerelease: true
+          title: "Development Build"
+          files: |
+            build/webm.lua
