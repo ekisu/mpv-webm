@@ -17,3 +17,4 @@ jobs:
           title: "Development Build"
           files: |
             build/webm.lua
+            build/webm.conf
