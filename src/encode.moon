@@ -220,7 +220,7 @@ encode = (region, startTime, endTime) ->
 
 	originalStartTime = startTime
 	originalEndTime = endTime
-	path, is_temporary, is_stream, startTime, endTime = find_path(startTime, endTime) 
+	path, is_stream, is_temporary, startTime, endTime = find_path(startTime, endTime) 
 	if not path
 		message("No file is being played")
 		return
