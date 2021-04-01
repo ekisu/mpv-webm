@@ -8,6 +8,8 @@ local options = {
 	-- backslashes as a path separator. Examples of valid inputs for this field
 	-- would be: [[]] (the default, empty value), [[C:\Users\John]] (on Windows),
 	-- and [[/home/john]] (on Unix-like systems eg. Linux).
+	-- The [[]] delimiter is not needed when using from a configuration file
+	-- in the script-opts folder.
 	output_directory = [[]],
 	run_detached = false,
 	-- Template string for the output file

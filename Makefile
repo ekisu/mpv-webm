@@ -25,12 +25,13 @@ TMPDIR       := build
 JOINEDSRC    := $(TMPDIR)/webm_bundle.moon
 OUTPUT       := $(JOINEDSRC:.moon=.lua)
 JOINEDLUASRC := $(TMPDIR)/webm.lua
+CONFFILE     := $(TMPDIR)/webm.conf
 RESULTS      := $(addprefix $(TMPDIR)/, $(SOURCES:.moon=.lua))
 MPVCONFIGDIR := ~/.config/mpv/
 
 .PHONY: all clean
 
-all: $(JOINEDLUASRC)
+all: $(JOINEDLUASRC) $(CONFFILE)
 
 $(OUTPUT): $(JOINEDSRC)
 	@printf 'Building %s\n' $@
@@ -53,6 +54,10 @@ $(TMPDIR):
 
 $(TMPDIR)/%/: | $(TMPDIR)
 	@mkdir -p $@
+
+$(CONFFILE): src/options.lua
+	@printf 'Generating %s\n' $@
+	@lua build-webm-conf.lua > $@
 
 install: $(JOINEDLUASRC)
 	install -d $(MPVCONFIGDIR)/scripts/
