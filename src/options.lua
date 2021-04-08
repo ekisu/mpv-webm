@@ -42,8 +42,14 @@ local options = {
 	-- In kilobits.
 	strict_audio_bitrate = 64,
 	-- Sets the output format, from a few predefined ones.
-	-- Currently we have webm-vp8 (libvpx/libvorbis), webm-vp9 (libvpx-vp9/libopus)
-	-- and raw (rawvideo/pcm_s16le).
+	-- Currently we have:
+	-- webm-vp8 (libvpx/libvorbis)
+	-- webm-vp9 (libvpx-vp9/libopus)
+	-- mp4 (h264/AAC)
+	-- mp4-nvenc (h264-NVENC/AAC)
+	-- raw (rawvideo/pcm_s16le).
+	-- mp3 (libmp3lame)
+	-- and gif
 	output_format = "webm-vp8",
 	twopass = false,
 	-- If set, applies the video filters currently used on the playback to the encode.
