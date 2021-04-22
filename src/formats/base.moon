@@ -31,3 +31,7 @@ class Format
 			codecs[#codecs + 1] = "--oac=#{@audioCodec}"
 		
 		return codecs
+
+	-- Method to modify commandline arguments just before the command is executed
+	postCommandModifier: (command, region, startTime, endTime) =>
+		return command
