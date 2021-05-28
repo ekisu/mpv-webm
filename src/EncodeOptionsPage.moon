@@ -175,6 +175,7 @@ class EncodeOptionsPage extends Page
 			{"crf", Option("int", "CRF", options.crf, crfOpts)},
 			{"fps", Option("list", "FPS", options.fps, fpsOpts)},
 			{"gif_dither", Option("list", "GIF Dither Type", options.gif_dither, gifDitherOpts, -> @options[1][2]\getValue! == "gif")},
+			{"force_square_pixels", Option("bool", "Force Square Pixels", options.force_square_pixels)},
 		}
 
 		@keybinds =

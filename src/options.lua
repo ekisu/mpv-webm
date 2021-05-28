@@ -73,7 +73,10 @@ local options = {
 	margin = 10,
 	message_duration = 5,
 	-- gif dither mode, 0-5 for bayer w/ bayer_scale 0-5, 6 for paletteuse default (sierra2_4a)
-	gif_dither = 2
+	gif_dither = 2,
+	-- Force square pixels on output video
+	-- Some players like recent Firefox versions display videos with non-square pixels with wrong aspect ratio
+	force_square_pixels = false,
 }
 
 mpopts.read_options(options)
