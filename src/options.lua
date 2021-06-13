@@ -71,7 +71,9 @@ local options = {
 	-- The font size used in the menu. Isn't used for the notifications (started encode, finished encode etc)
 	font_size = 28,
 	margin = 10,
-	message_duration = 5
+	message_duration = 5,
+	-- gif dither mode, 0-5 for bayer w/ bayer_scale 0-5, 6 for paletteuse default (sierra2_4a)
+	gif_dither = 2
 }
 
 mpopts.read_options(options)

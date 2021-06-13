@@ -13,11 +13,13 @@ class Option
 	-- 		{value}
 	-- }
 	-- setValue will be called for the constructor argument.
-	new: (optType, displayText, value, opts) =>
+	-- visibleCheckFn is a function to check for visibility, it can be used to hide options based on rules
+	new: (optType, displayText, value, opts, visibleCheckFn) =>
 		@optType = optType
 		@displayText = displayText
 		@opts = opts
 		@value = 1
+		@visibleCheckFn = visibleCheckFn
 		self\setValue(value)
 
 	-- Whether we have a "previous" option (for left key)
@@ -121,6 +123,13 @@ class Option
 		ass\append(" ▶") if self\hasNext!
 		ass\append("\\N")
 
+	-- Check if this option should be visible by calling its visibleCheckFn
+	optVisible: =>
+		if self.visibleCheckFn == nil
+			return true
+		else
+			return self.visibleCheckFn!
+
 class EncodeOptionsPage extends Page
 	new: (callback) =>
 		@callback = callback
@@ -149,6 +158,10 @@ class EncodeOptionsPage extends Page
 		formatOpts =
 			possibleValues: [{fId, formats[fId].displayName} for fId in *formatIds]
 
+		gifDitherOpts =
+			possibleValues: {{0, "bayer_scale 0"}, {1, "bayer_scale 1"},
+			{2, "bayer_scale 2"}, {3, "bayer_scale 3"}, {4, "bayer_scale 4"}, {5, "bayer_scale 5"}, {6, "sierra2_4a"}}
+
 		-- This could be a dict instead of a array of pairs, but order isn't guaranteed
 		-- by dicts on Lua.
 		@options = {
@@ -161,6 +174,7 @@ class EncodeOptionsPage extends Page
 			{"target_filesize", Option("int", "Target Filesize", options.target_filesize, filesizeOpts)},
 			{"crf", Option("int", "CRF", options.crf, crfOpts)},
 			{"fps", Option("list", "FPS", options.fps, fpsOpts)},
+			{"gif_dither", Option("list", "GIF Dither Type", options.gif_dither, gifDitherOpts, -> @options[1][2]\getValue! == "gif")},
 		}
 
 		@keybinds =
@@ -183,11 +197,17 @@ class EncodeOptionsPage extends Page
 		self\draw!
 
 	prevOpt: =>
-		@currentOption = math.max(1, @currentOption - 1)
+		for i = @currentOption - 1, 1, -1
+			if @options[i][2]\optVisible!
+				@currentOption = i
+				break
 		self\draw!
 
 	nextOpt: =>
-		@currentOption = math.min(#@options, @currentOption + 1)
+		for i = @currentOption + 1, #@options
+			if @options[i][2]\optVisible!
+				@currentOption = i
+				break
 		self\draw!
 
 	confirmOpts: =>
@@ -210,7 +230,8 @@ class EncodeOptionsPage extends Page
 		ass\append("#{bold('Options:')}\\N\\N")
 		for i, optPair in ipairs @options
 			opt = optPair[2]
-			opt\draw(ass, @currentOption == i)
+			if opt\optVisible!
+				opt\draw(ass, @currentOption == i)
 		ass\append("\\N▲ / ▼: navigate\\N")
 		ass\append("#{bold('ENTER:')} confirm options\\N")
 		ass\append("#{bold('ESC:')} cancel\\N")
