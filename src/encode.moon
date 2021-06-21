@@ -74,9 +74,12 @@ append_audio_tracks = (out, tracks) ->
 		append_track(out, internal_tracks[1])
 
 get_scale_filters = ->
+	filters = {}
+	if options.force_square_pixels
+		append(filters, {"lavfi-scale=iw*sar:ih"})
 	if options.scale_height > 0
-		return {"lavfi-scale=-2:#{options.scale_height}"}
-	return {}
+		append(filters, {"lavfi-scale=-2:#{options.scale_height}"})
+	return filters
 
 get_fps_filters = ->
 	if options.fps > 0
