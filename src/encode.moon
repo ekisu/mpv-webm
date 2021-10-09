@@ -83,6 +83,31 @@ get_fps_filters = ->
 		return {"fps=#{options.fps}"}
 	return {}
 
+get_contrast_brightness_and_saturation_filters = ->
+	mpv_brightness = mp.get_property("brightness")
+	mpv_contrast = mp.get_property("contrast")
+	mpv_saturation = mp.get_property("saturation")
+
+	if mpv_brightness == 0 and mpv_contrast == 0 and mpv_saturation == 0
+		-- Default values, no need to change anything.
+		return {}
+
+	-- We have to map mpv's contrast/brightness/saturation values to the ones used by the eq filter.
+	-- From what I've gathered from looking at ffmpeg's source, the contrast value is used to multiply the luma
+	-- channel, while the saturation one multiplies both chroma channels. On mpv, it seems that contrast multiplies
+	-- both luma and chroma (?); but I don't really know a lot about how things work internally. This might cause some
+	-- weird interactions, but for now I guess it's fine.
+	eq_saturation = (mpv_saturation + 100) / 100.0
+	eq_contrast = (mpv_contrast + 100) / 100.0
+
+	-- For brightness, this should work I guess... For some reason, contrast is factored into how the luma offset is
+	-- calculated on the eq filter, so we need to offset it in a way that the effective offset added is the same.
+	-- Also, on mpv's side, we add it after the conversion to RGB; I'm not sure how that affects things but hopefully
+	-- it ends in the same result.
+	eq_brightness = (mpv_brightness / 50.0 + eq_contrast - 1) / 2.0
+
+	return {"lavfi-eq=contrast=#{eq_contrast}:saturation=#{eq_saturation}:brightness=#{eq_brightness}"}
+
 append_property = (out, property_name, option_name) ->
 	option_name = option_name or property_name
 	prop = mp.get_property(property_name)
@@ -155,6 +180,7 @@ get_video_filters = (format, region) ->
 
 	append(filters, get_scale_filters!)
 	append(filters, get_fps_filters!)
+	append(filters, get_contrast_brightness_and_saturation_filters!)
 
 	append(filters, format\getPostFilters!)
 
