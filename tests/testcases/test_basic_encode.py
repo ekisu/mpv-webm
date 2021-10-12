@@ -14,6 +14,6 @@ class TestBasicEncode(BaseTestCase):
         time.sleep(1)
         self.sendKeyPress('e')
 
-        self.waitForEvent('webm-encode-success', timeout=60)
+        self.waitForEvent('webm-encode-success', timeout=240)
 
         # TODO Test if file exists? I guess
