@@ -81,6 +81,9 @@ class MpvIPC:
         raise TimeoutError('Timed out trying to connect to the IPC')
     
     def _send_to_ipc_socket(self, data: dict) -> None:
+        if not self._running:
+            raise ConnectionError('IPC is not running')
+
         self._ipc_socket.send(json.dumps(data).encode('utf-8') + b'\n')
     
     def _process_data(self, data: bytes):
@@ -111,13 +114,16 @@ class MpvIPC:
                 event.set()
 
     def _read_loop(self):
-        while self._running:
-            try:
-                data = self._ipc_socket.recv(4096)
+        try:
+            while self._running:
+                try:
+                    data = self._ipc_socket.recv(4096)
 
-                self._process_data(data)
-            except socket.timeout:
-                pass
+                    self._process_data(data)
+                except socket.timeout:
+                    pass
+        finally:
+            self._running = False
     
     def start(self):
         self._running = True
@@ -127,6 +133,8 @@ class MpvIPC:
     def stop(self):
         self._running = False
         self._read_thread.join()
+
+        self._ipc_socket.close()
     
     def send_command(self, command_data: dict, timeout: float = 5) -> MpvReply:
         new_request_id = self._last_request_id + 1

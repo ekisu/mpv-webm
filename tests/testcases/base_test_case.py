@@ -2,10 +2,8 @@ from abc import ABCMeta
 from pathlib import Path
 import unittest
 import subprocess
-import socket
 import json
-import time
-import select
+import uuid
 from typing import List
 from dataclasses import dataclass
 from tests.mpv_ipc import MpvIPC
@@ -23,7 +21,8 @@ class BaseTestCase(unittest.TestCase, metaclass=ABCMeta):
         super().setUp()
 
         # Start a mpv process with the script loaded
-        socket_address = '/tmp/mpvsocket'
+        # Use a UUID on the socket to avoid collisions with previous running instances.
+        socket_address = f'/tmp/mpvsocket-{str(uuid.uuid4())}'
         script_path = Path('build/webm.lua')
         mpv_process_args = [
             'mpv',
