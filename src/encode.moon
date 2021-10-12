@@ -352,6 +352,8 @@ encode = (region, startTime, endTime) ->
 	out_path = utils.join_path(dir, formatted_filename)
 	append(command, {"--o=#{out_path}"})
 
+	emit_event("encode-started")
+
 	-- Do the first pass now, as it won't require the output path. I don't think this works on streams.
 	-- Also this will ignore run_detached, at least for the first pass.
 	if options.twopass and format.supportsTwopass and not is_stream
@@ -365,6 +367,8 @@ encode = (region, startTime, endTime) ->
 		res = run_subprocess({args: first_pass_cmdline, cancellable: false})
 		if not res
 			message("First pass failed! Check the logs for details.")
+			emit_event("encode-failed")
+
 			return
 		
 		-- set the second pass flag on the final encode command
@@ -395,8 +399,11 @@ encode = (region, startTime, endTime) ->
 			res = ewp\startEncode(command)
 		if res
 			message("Encoded successfully! Saved to\\N#{bold(out_path)}")
+			emit_event("encode-success")
 		else
 			message("Encode failed! Check the logs for details.")
+			emit_event("encode-failed")
+
 		
 		-- Clean up pass log file.
 		os.remove(get_pass_logfile_path(out_path))

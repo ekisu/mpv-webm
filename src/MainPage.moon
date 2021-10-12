@@ -53,6 +53,11 @@ class MainPage extends Page
 		ass\append("#{bold('e:')} encode\\N\\N")
 		ass\append("#{bold('ESC:')} close\\N")
 		mp.set_osd_ass(window_w, window_h, ass.text)
+	
+	show: =>
+		super\show!
+
+		emit_event("show-main-page")
 
 	onUpdateCropRegion: (updated, newRegion) =>
 		if updated
