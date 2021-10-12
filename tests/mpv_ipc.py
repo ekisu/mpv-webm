@@ -46,6 +46,7 @@ class MpvIPC:
     # ??????????
     _pending_event_events: Dict[str, threading.Event]
     _pending_request_replies: Dict[int, MpvReply]
+    _pending_event_replies: Dict[str, MpvEvent]
     _read_thread: Optional[threading.Thread]
     _last_request_id: int
 
@@ -58,6 +59,7 @@ class MpvIPC:
         self._pending_request_events = {}
         self._pending_event_events = {}
         self._pending_request_replies = {}
+        self._pending_event_replies = {}
         self._read_thread = None
         self._last_request_id = 0
 
@@ -91,6 +93,8 @@ class MpvIPC:
         replies_for_pending_requests = {reply.request_id: reply for reply in new_replies if reply.request_id in self._pending_request_events}
         new_unanswered_replies = [reply for reply in new_replies if reply.request_id not in self._pending_request_events]
 
+        replies_for_pending_events = {event.event_name: event for event in new_events if event.event_name in self._pending_event_events}
+
         self.fired_events.extend(new_events)
         self.unanswered_replies.extend(new_unanswered_replies)
 
@@ -100,6 +104,7 @@ class MpvIPC:
             event = self._pending_request_events.pop(request_id)
             event.set()
 
+        self._pending_event_replies.update(replies_for_pending_events)
         for new_event in new_events:
             if new_event.event_name in self._pending_event_events:
                 event = self._pending_event_events.pop(new_event.event_name)
@@ -137,9 +142,14 @@ class MpvIPC:
 
         return self._pending_request_replies[new_request_id]
 
-    def wait_for_event(self, event_name: str, timeout: float = 5) -> bool:
+    def wait_for_event(self, event_name: str, timeout: float = 5) -> Optional[MpvEvent]:
         if any(event.event_name == event_name for event in self.fired_events):
             return True
         
         self._pending_event_events[event_name] = threading.Event()
-        return self._pending_event_events[event_name].wait(timeout)
+        got_reply = self._pending_event_events[event_name].wait(timeout)
+
+        if not got_reply:
+            return None
+        
+        return self._pending_event_replies[event_name]

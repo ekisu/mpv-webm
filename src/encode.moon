@@ -367,7 +367,7 @@ encode = (region, startTime, endTime) ->
 		res = run_subprocess({args: first_pass_cmdline, cancellable: false})
 		if not res
 			message("First pass failed! Check the logs for details.")
-			emit_event("encode-failed")
+			emit_event("encode-finished", "fail")
 
 			return
 		
@@ -399,10 +399,10 @@ encode = (region, startTime, endTime) ->
 			res = ewp\startEncode(command)
 		if res
 			message("Encoded successfully! Saved to\\N#{bold(out_path)}")
-			emit_event("encode-success")
+			emit_event("encode-finished", "success")
 		else
 			message("Encode failed! Check the logs for details.")
-			emit_event("encode-failed")
+			emit_event("encode-finished", "fail")
 
 		
 		-- Clean up pass log file.

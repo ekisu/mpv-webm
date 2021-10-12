@@ -1,3 +1,4 @@
+from tests.mpv_ipc import MpvScriptMessageEvent
 from .base_test_case import BaseTestCase
 from pathlib import Path
 
@@ -14,6 +15,6 @@ class TestBasicEncode(BaseTestCase):
         time.sleep(1)
         self.sendKeyPress('e')
 
-        self.waitForEvent('webm-encode-success', timeout=240)
-
-        # TODO Test if file exists? I guess
+        finished_event = self.waitForEvent('webm-encode-finished', timeout=240)
+        self.assertIsInstance(finished_event, MpvScriptMessageEvent)
+        self.assertEqual(['webm-encode-finished', 'success'], finished_event.args)

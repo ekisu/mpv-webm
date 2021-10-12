@@ -32,9 +32,7 @@ class BaseTestCase(unittest.TestCase, metaclass=ABCMeta):
             '--vo=null',
             '--ao=null',
             '--load-scripts=no',
-            # f'--script={str(script_path.absolute())}',
             '--idle=yes',
-            # '--keep-open=yes',
             f'--input-ipc-server={socket_address}',
         ]
 
@@ -66,12 +64,16 @@ class BaseTestCase(unittest.TestCase, metaclass=ABCMeta):
 
     def sendCommandToMpv(self, data: dict, timeout: float = 10) -> None:
         return self.mpv_ipc.send_command(data, timeout)
+    
+    def updateScriptOptions(self, new_options: dict) -> None:
+        self.sendCommandToMpv({
+            'command': ['script-message', 'mpv-webm-set-options', json.dumps(new_options)],
+        })
 
     def openTestVideoFile(self, path: Path) -> None:
         self.sendCommandToMpv({
             'command': ['loadfile', str(path.absolute()), 'replace'],
         })
-
         self.waitForEvent('file-loaded')
     
     def sendKeyPress(self, key: str) -> None:
@@ -80,5 +82,8 @@ class BaseTestCase(unittest.TestCase, metaclass=ABCMeta):
         })
     
     def waitForEvent(self, event_name: str, timeout: float = 5):
-        if not self.mpv_ipc.wait_for_event(event_name, timeout):
+        event = self.mpv_ipc.wait_for_event(event_name, timeout)
+        if not event:
             self.fail(f'No {event_name} event was fired')
+        
+        return event
