@@ -4,7 +4,7 @@ import sys
 
 if __name__ == '__main__':
     loader = unittest.TestLoader()
-    suite = loader.discover(Path(__file__).parent.absolute(), pattern='test_formats.py')
+    suite = loader.discover(Path(__file__).parent.absolute())
     runner = unittest.TextTestRunner()
     result = runner.run(suite)
 
