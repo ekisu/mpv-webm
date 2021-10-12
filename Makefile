@@ -3,6 +3,7 @@ LUASOURCES := src/requires.lua
 LUASOURCES += src/options.lua
 LUASOURCES += src/base64.lua
 
+SOURCES += src/testing.moon
 SOURCES += src/util.moon
 SOURCES += src/video_to_screen.moon
 SOURCES += src/vp8_twopass_log_patcher.moon
