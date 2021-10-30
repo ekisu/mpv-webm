@@ -51,7 +51,7 @@ local options = {
 	-- mp3 (libmp3lame)
 	-- and gif
 	output_format = "webm-vp8",
-	twopass = false,
+	twopass = true,
 	-- If set, applies the video filters currently used on the playback to the encode.
 	apply_current_filters = true,
 	-- If set, writes the video's filename to the "Title" field on the metadata.
