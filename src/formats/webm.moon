@@ -25,7 +25,11 @@ class WebmVP8 extends Format
 
 	getFlags: =>
 		{
-			"--ovcopts-add=threads=#{options.libvpx_threads}"
+			"--ovcopts-add=threads=#{options.libvpx_threads}",
+			"--ovcopts-add=auto-alt-ref=1",
+			"--ovcopts-add=lag-in-frames=25",
+			"--ovcopts-add=quality=good",
+			"--ovcopts-add=cpu-used=0",
 		}
 
 formats["webm-vp8"] = WebmVP8!
