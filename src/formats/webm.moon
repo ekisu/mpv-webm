@@ -37,7 +37,7 @@ formats["webm-vp8"] = WebmVP8!
 class WebmVP9 extends Format
 	new: =>
 		@displayName = "WebM (VP9)"
-		@supportsTwopass = true
+		@supportsTwopass = false
 		@videoCodec = "libvpx-vp9"
 		@audioCodec = "libopus"
 		@outputExtension = "webm"
