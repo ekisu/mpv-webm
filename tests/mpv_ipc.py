@@ -139,11 +139,13 @@ class MpvIPC:
     def send_command(self, command_data: dict, timeout: float = 5) -> MpvReply:
         new_request_id = self._last_request_id + 1
         command_with_request_id = {**command_data, 'request_id': new_request_id}
-        self._pending_request_events[new_request_id] = threading.Event()
+
+        event = threading.Event()
+        self._pending_request_events[new_request_id] = event
 
         self._send_to_ipc_socket(command_with_request_id)
         self._last_request_id = new_request_id
-        got_reply = self._pending_request_events[new_request_id].wait(timeout)
+        got_reply = event.wait(timeout)
 
         if not got_reply:
             raise TimeoutError('Timed out waiting for reply')
@@ -154,8 +156,9 @@ class MpvIPC:
         if any(event.event_name == event_name for event in self.fired_events):
             return True
         
-        self._pending_event_events[event_name] = threading.Event()
-        got_reply = self._pending_event_events[event_name].wait(timeout)
+        event = threading.Event()
+        self._pending_event_events[event_name] = event
+        got_reply = event.wait(timeout)
 
         if not got_reply:
             return None
