@@ -133,6 +133,7 @@ get_playback_options = ->
 	append_property(ret, "sub-ass-force-style")
 	append_property(ret, "sub-ass-vsfilter-aspect-compat")
 	append_property(ret, "sub-auto")
+	append_property(ret, "sub-pos")
 	append_property(ret, "sub-delay")
 	append_property(ret, "video-rotate")
 	append_property(ret, "ytdl-format")
