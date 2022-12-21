@@ -8,7 +8,7 @@ jobs:
       - run: sudo apt-get install -y lua5.1 luarocks make
       - run: sudo luarocks install moonscript
       - run: make
-      - name: Upload a Build Artifact
+      - name: Upload Build Artifacts
         uses: actions/upload-artifact@v3.1.1
         with:
           path: /home/runner/work/mpv-webm/mpv-webm/build
