@@ -51,10 +51,10 @@ class GIF extends Format
 		-- not sure if fifo is necessary but some examples online use it. it doesn't hurt to add
 		cfilter = cfilter .. "[vidf]fifo[vidf];"
 
-		if options.gif_dither == 6
-			cfilter = cfilter .. "[vidf][pal]paletteuse[vo]"
-		else
-			cfilter = cfilter .. "[vidf][pal]paletteuse=dither=bayer:bayer_scale=#{options.gif_dither}:diff_mode=rectangle[vo]"
+		cfilter = cfilter .. "[vidf][pal]paletteuse=diff_mode=rectangle"
+		if options.gif_dither != 6
+			cfilter = cfilter .. ":dither=bayer:bayer_scale=#{options.gif_dither}"
+		cfilter = cfilter .. "[vo]"
 
 		append(new_command, { "--lavfi-complex=#{cfilter}" })
 
