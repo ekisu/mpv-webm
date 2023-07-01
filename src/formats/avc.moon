@@ -1,21 +1,26 @@
-class MP4 extends Format
+class AVC extends Format
 	new: =>
-		@displayName = "MP4 (h264/AAC)"
+		@displayName = "AVC (h264/AAC)"
 		@supportsTwopass = true
 		@videoCodec = "libx264"
 		@audioCodec = "aac"
 		@outputExtension = "mp4"
 		@acceptsBitrate = true
 
-formats["mp4"] = MP4!
+	getFlags: =>
+		{
+			"--ovcopts-add=threads=#{options.threads}"
+		}
 
-class MP4NVENC extends Format
+formats["avc"] = AVC!
+
+class AVCNVENC extends Format
 	new: =>
-		@displayName = "MP4 (h264-NVENC/AAC)"
+		@displayName = "AVC (h264-NVENC/AAC)"
 		@supportsTwopass = true
 		@videoCodec = "h264_nvenc"
 		@audioCodec = "aac"
 		@outputExtension = "mp4"
 		@acceptsBitrate = true
 
-formats["mp4-nvenc"] = MP4NVENC!
+formats["avc-nvenc"] = AVCNVENC!

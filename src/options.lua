@@ -43,13 +43,15 @@ local options = {
 	strict_audio_bitrate = 64,
 	-- Sets the output format, from a few predefined ones.
 	-- Currently we have:
-	-- webm-vp8 (libvpx/libvorbis)
+	-- av1
+	-- hevc
 	-- webm-vp9 (libvpx-vp9/libopus)
 	-- mp4 (h264/AAC)
 	-- mp4-nvenc (h264-NVENC/AAC)
-	-- raw (rawvideo/pcm_s16le).
+	-- webm-vp8 (libvpx/libvorbis)
+	-- gif
 	-- mp3 (libmp3lame)
-	-- and gif
+	-- and raw (rawvideo/pcm_s16le).
 	output_format = "webm-vp8",
 	twopass = true,
 	-- If set, applies the video filters currently used on the playback to the encode.
@@ -57,7 +59,7 @@ local options = {
 	-- If set, writes the video's filename to the "Title" field on the metadata.
 	write_filename_on_metadata = false,
 	-- Set the number of encoding threads, for codecs libvpx and libvpx-vp9
-	libvpx_threads = 4,
+	threads = 4,
 	additional_flags = "",
 	-- Constant Rate Factor (CRF). The value meaning and limits may change,
 	-- from codec to codec. Set to -1 to disable.
