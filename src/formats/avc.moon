@@ -22,5 +22,10 @@ class AVCNVENC extends Format
 		@audioCodec = "aac"
 		@outputExtension = "mp4"
 		@acceptsBitrate = true
+	
+	getFlags: =>
+		{
+			"--ovcopts-add=bf=0"
+		}
 
 formats["avc-nvenc"] = AVCNVENC!
