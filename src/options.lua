@@ -46,8 +46,8 @@ local options = {
 	-- av1
 	-- hevc
 	-- webm-vp9 (libvpx-vp9/libopus)
-	-- mp4 (h264/AAC)
-	-- mp4-nvenc (h264-NVENC/AAC)
+	-- avc (h264/AAC)
+	-- avc-nvenc (h264-NVENC/AAC)
 	-- webm-vp8 (libvpx/libvorbis)
 	-- gif
 	-- mp3 (libmp3lame)
