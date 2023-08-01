@@ -28,8 +28,8 @@ class TestFormats(BaseTestCase):
     def test_webm_vp9(self):
         self._test_with_format('webm-vp9')
     
-    def test_mp4(self):
-        self._test_with_format('mp4')
+    def test_avc(self):
+        self._test_with_format('avc')
     
     @unittest.skip('Our video file has no audio track yet.')
     def test_mp3(self):
@@ -39,4 +39,4 @@ class TestFormats(BaseTestCase):
         self._test_with_format('gif')
 
     # TODO Test raw (probably too big, would require using a smaller section)
-    # and mp4-nvenc (yeah, good luck using that on GitHub Actions)
+    # and avc-nvenc (yeah, good luck using that on GitHub Actions)
