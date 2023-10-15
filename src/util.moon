@@ -97,11 +97,14 @@ add_sequence_number = (global_mode, dir, filename, extension) ->
 			videono = 1
 		while true
 			out_filename, _ = filename\gsub(pattern_sub, string.format(pattern_pad, videono))
-			print(videono, out_filename, extension)
 			file = utils.join_path(dir, "#{out_filename}.#{extension}")
 			videono = videono + 1
+			-- return file if it doesn't exist
 			if not utils.file_info(file)
 				return file
+			-- quit if number is not  less than 100000 - 1 (mpv limit)
+			if not (videono < 100000 - 1)
+				return nil
 
 format_filename = (startTime, endTime, videoFormat, dir) ->
 	hasAudioCodec = videoFormat.audioCodec != ""
@@ -162,8 +165,10 @@ format_filename = (startTime, endTime, videoFormat, dir) ->
 	-- Linux: /
 	filename, _ = filename\gsub("[<>:\"/\\|?*]", "")
 
-	global_mode = filename\match(global_sequence_pattern) and true or filename\match(local_sequence_pattern) and false
-	result = add_sequence_number(global_mode, dir, filename, videoFormat.outputExtension)
+	result = nil
+	global_mode = filename\match(global_sequence_pattern)
+	if global_mode or filename\match(local_sequence_pattern)
+		result = add_sequence_number(global_mode, dir, filename, videoFormat.outputExtension)
 	return result or utils.join_path(dir, "#{filename}.#{videoFormat.outputExtension}")
 
 parse_directory = (dir) ->
