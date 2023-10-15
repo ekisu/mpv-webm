@@ -96,13 +96,14 @@ add_sequence_number = (global_mode, dir, filename, extension) ->
 		if not global_mode
 			videono = 1
 		while true
+			-- replace pattern with padded sequence number
 			out_filename, _ = filename\gsub(pattern_sub, string.format(pattern_pad, videono))
 			file = utils.join_path(dir, "#{out_filename}.#{extension}")
 			videono = videono + 1
 			-- return file if it doesn't exist
 			if not utils.file_info(file)
 				return file
-			-- quit if number is not  less than 100000 - 1 (mpv limit)
+			-- quit if number is not less than 100000 - 1 (mpv limit)
 			if not (videono < 100000 - 1)
 				return nil
 
@@ -167,6 +168,7 @@ format_filename = (startTime, endTime, videoFormat, dir) ->
 
 	result = nil
 	global_mode = filename\match(global_sequence_pattern)
+	-- run only if either pattern is present
 	if global_mode or filename\match(local_sequence_pattern)
 		result = add_sequence_number(global_mode, dir, filename, videoFormat.outputExtension)
 	return result or utils.join_path(dir, "#{filename}.#{videoFormat.outputExtension}")
