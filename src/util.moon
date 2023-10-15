@@ -79,7 +79,31 @@ expand_properties = (text, magic="$") ->
 
 	return text
 
-format_filename = (startTime, endTime, videoFormat) ->
+export videono = 1
+export global_sequence_pattern = "%%0(%d)n"
+export local_sequence_pattern = "%%#0(%d)n"
+
+add_sequence_number = (global_mode, dir, filename, extension) ->
+	pattern = global_mode and global_sequence_pattern or local_sequence_pattern
+	pattern_string = global_mode and "%0Xn" or "%#0Xn"
+
+	if select(2, filename\gsub(pattern, "")) > 1
+		print("Wrong output template: #{pattern_string} is used more than once!")
+	else
+		padding = filename\match(pattern)
+		pattern_sub = pattern\gsub("(%%d)", padding)
+		pattern_pad = "%0#{padding}d"
+		if not global_mode
+			videono = 1
+		while true
+			out_filename, _ = filename\gsub(pattern_sub, string.format(pattern_pad, videono))
+			print(videono, out_filename, extension)
+			file = utils.join_path(dir, "#{out_filename}.#{extension}")
+			videono = videono + 1
+			if not utils.file_info(file)
+				return file
+
+format_filename = (startTime, endTime, videoFormat, dir) ->
 	hasAudioCodec = videoFormat.audioCodec != ""
 	replaceFirst =
 		"%%mp": "%%mH.%%mM.%%mS"
@@ -138,7 +162,9 @@ format_filename = (startTime, endTime, videoFormat) ->
 	-- Linux: /
 	filename, _ = filename\gsub("[<>:\"/\\|?*]", "")
 
-	return "#{filename}.#{videoFormat.outputExtension}"
+	global_mode = filename\match(global_sequence_pattern) and true or filename\match(local_sequence_pattern) and false
+	result = add_sequence_number(global_mode, dir, filename, videoFormat.outputExtension)
+	return result or utils.join_path(dir, "#{filename}.#{videoFormat.outputExtension}")
 
 parse_directory = (dir) ->
 	home_dir = os.getenv("HOME")
