@@ -349,8 +349,7 @@ encode = (region, startTime, endTime) ->
 	if options.output_directory != ""
 		dir = parse_directory(options.output_directory)
 
-	formatted_filename = format_filename(originalStartTime, originalEndTime, format)
-	out_path = utils.join_path(dir, formatted_filename)
+	out_path = format_filename(originalStartTime, originalEndTime, format, dir)
 	append(command, {"--o=#{out_path}"})
 
 	emit_event("encode-started")
