@@ -48,8 +48,6 @@ class GIF extends Format
 		-- complete the complex filter with split->palettegen->paletteuse
 		cfilter = cfilter .. "[vidtmp]split[topal][vidf];"
 		cfilter = cfilter .. "[topal]palettegen[pal];"
-		-- not sure if fifo is necessary but some examples online use it. it doesn't hurt to add
-		cfilter = cfilter .. "[vidf]fifo[vidf];"
 
 		cfilter = cfilter .. "[vidf][pal]paletteuse=diff_mode=rectangle"
 		if options.gif_dither != 6
