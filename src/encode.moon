@@ -129,15 +129,40 @@ append_list_options = (out, property_name, option_prefix) ->
 -- Get the current playback options, trying to match how the video is being played.
 get_playback_options = ->
 	ret = {}
+	append_property(ret, "video-rotate")
+	append_property(ret, "ytdl-format")
+	append_property(ret, "deinterlace")
+
+	return ret
+
+get_sub_options = ->
+	ret = {}
 	append_property(ret, "sub-ass-override")
 	append_property(ret, "sub-ass-force-style")
 	append_property(ret, "sub-ass-vsfilter-aspect-compat")
 	append_property(ret, "sub-auto")
 	append_property(ret, "sub-pos")
 	append_property(ret, "sub-delay")
-	append_property(ret, "video-rotate")
-	append_property(ret, "ytdl-format")
-	append_property(ret, "deinterlace")
+	append_property(ret, "sub-scale")
+	append_property(ret, "sub-font")
+	append_property(ret, "sub-font-size")
+	append_property(ret, "sub-bold")
+	append_property(ret, "sub-italic")
+	append_property(ret, "sub-color")
+	append_property(ret, "sub-back-color")
+	append_property(ret, "sub-border-color")
+	append_property(ret, "sub-border-size")
+	append_property(ret, "sub-shadow-color")
+	append_property(ret, "sub-shadow-offset")
+	append_property(ret, "sub-use-margins")
+	append_property(ret, "sub-margin-x")
+	append_property(ret, "sub-margin-y")
+	append_property(ret, "sub-align-x")
+	append_property(ret, "sub-align-y")
+	append_property(ret, "sub-spacing")
+	append_property(ret, "sub-justify")
+	append_property(ret, "sub-gauss")
+	append_property(ret, "sub-gray")
 
 	return ret
 
@@ -193,6 +218,8 @@ get_video_filters = (format, region) ->
 get_video_encode_flags = (format, region) ->
 	flags = {}
 	append(flags, get_playback_options!)
+	append(flags, get_sub_options!)
+
 
 	filters = get_video_filters(format, region)
 	for f in *filters
