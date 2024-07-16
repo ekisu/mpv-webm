@@ -143,6 +143,7 @@ get_sub_options = ->
 	append_property(ret, "sub-auto")
 	append_property(ret, "sub-pos")
 	append_property(ret, "sub-delay")
+	append_property(ret, "sub-speed")
 	append_property(ret, "sub-scale")
 	append_property(ret, "sub-font")
 	append_property(ret, "sub-font-size")
