@@ -139,7 +139,7 @@ get_sub_options = ->
 	ret = {}
 	append_property(ret, "sub-ass-override")
 	append_property(ret, "sub-ass-force-style")
-	append_property(ret, "sub-ass-vsfilter-aspect-compat")
+	append_property(ret, "sub-ass-use-video-data")
 	append_property(ret, "sub-auto")
 	append_property(ret, "sub-pos")
 	append_property(ret, "sub-delay")
