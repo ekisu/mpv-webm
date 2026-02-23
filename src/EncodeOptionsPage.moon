@@ -150,11 +150,11 @@ class EncodeOptionsPage extends Page
 				[-1]: "disabled"
 
 		fpsOpts =
-			possibleValues: {{-1, "source"}, {15}, {24}, {30}, {48}, {50}, {60}, {120}, {240}}
+			possibleValues: {{-1, "source"}, {4}, {8}, {12}, {15}, {16}, {20}, {24}, {30}, {48}, {50}, {60}, {90}, {120}, {240}}
 
 		-- I really dislike hardcoding this here, but, as said below, order in dicts isn't
 		-- guaranteed, and we can't use the formats dict keys.
-		formatIds = {"av1", "hevc", "webm-vp9", "avc", "avc-nvenc", "webm-vp8", "gif", "mp3", "raw"}
+		formatIds = {"av1", "hevc", "webm-vp9", "avc", "avc-nvenc", "webm-vp8", "webp", "gif", "mp3", "raw"}
 		formatOpts =
 			possibleValues: [{fId, formats[fId].displayName} for fId in *formatIds]
 

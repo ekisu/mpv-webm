@@ -46,6 +46,7 @@ local options = {
 	-- av1
 	-- hevc
 	-- webm-vp9 (libvpx-vp9/libopus)
+	-- webp
 	-- avc (h264/AAC)
 	-- avc-nvenc (h264-NVENC/AAC)
 	-- webm-vp8 (libvpx/libvorbis)
@@ -79,9 +80,9 @@ local options = {
 	-- Force square pixels on output video
 	-- Some players like recent Firefox versions display videos with non-square pixels with wrong aspect ratio
 	force_square_pixels = false,
-    -- MPV command to run upon successful encoding
-    -- %{output} will be replaced with the path to the resulting file.
-    completion_command = "",
+	-- MPV command to run upon successful encoding
+	-- %{output} will be replaced with the path to the resulting file.
+	completion_command = "",
 }
 
 mpopts.read_options(options)
