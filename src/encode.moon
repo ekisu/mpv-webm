@@ -438,5 +438,7 @@ encode = (region, startTime, endTime) ->
 		
 		-- Clean up pass log file.
 		os.remove(get_pass_logfile_path(out_path))
+		os.remove "x264_2pass.log"
+		os.remove "x264_2pass.log.mbtree"
 		if is_temporary
 			os.remove(path)
