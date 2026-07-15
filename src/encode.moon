@@ -258,19 +258,18 @@ find_path = (startTime, endTime) ->
 	is_stream = not file_exists(path)
 	is_temporary = false
 	if is_stream
-		if mp.get_property('file-format') == 'hls'
-			-- Attempt to dump the stream cache into a temporary file
-			path = utils.join_path(parse_directory('~'), 'cache_dump.ts')
-			mp.command_native({
-				'dump_cache',
-				seconds_to_time_string(startTime, false, true),
-				seconds_to_time_string(endTime + 5, false, true),
-				path
-			})
+		-- Attempt to dump the stream cache into a temporary file
+		path = utils.join_path(parse_directory('~'), 'cache_dump.ts')
+		mp.command_native({
+			'dump_cache',
+			seconds_to_time_string(startTime, false, true),
+			seconds_to_time_string(endTime + 5, false, true),
+			path
+		})
 
-			endTime = endTime - startTime
-			startTime = 0
-			is_temporary = true
+		endTime = endTime - startTime
+		startTime = 0
+		is_temporary = true
 
 	return path, is_stream, is_temporary, startTime, endTime
 

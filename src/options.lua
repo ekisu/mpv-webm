@@ -44,7 +44,9 @@ local options = {
 	-- Sets the output format, from a few predefined ones.
 	-- Currently we have:
 	-- av1
+	-- av1_qsv (AV1-Intel QSV/AAC)
 	-- hevc
+	-- hevc_qsv (HEVC-Intel QSV/AAC)
 	-- webm-vp9 (libvpx-vp9/libopus)
 	-- webp
 	-- avc (h264/AAC)
