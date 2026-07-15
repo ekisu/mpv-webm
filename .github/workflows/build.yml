@@ -1,5 +1,5 @@
 name: build
-on: [push]
+on: [push, workflow_dispatch]
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -8,6 +8,12 @@ jobs:
       - run: sudo apt-get install -y lua5.1 luarocks make
       - run: sudo luarocks install moonscript
       - run: make
+      - uses: actions/upload-artifact@v4
+        with:
+          name: webm-bundle
+          path: |
+            build/webm.lua
+            build/webm.conf
       - uses: "marvinpinto/action-automatic-releases@latest"
         if: ${{ github.ref == 'refs/heads/master' }}
         with:
