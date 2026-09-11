@@ -210,7 +210,8 @@ get_video_filters = (format, region) ->
 
 	append(filters, get_scale_filters!)
 	append(filters, get_fps_filters!)
-	append(filters, get_contrast_brightness_and_saturation_filters!)
+	if options.apply_current_filters
+		append(filters, get_contrast_brightness_and_saturation_filters!)
 
 	append(filters, format\getPostFilters!)
 
