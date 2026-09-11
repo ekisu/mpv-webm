@@ -341,9 +341,10 @@ encode = (region, startTime, endTime) ->
 			
 			if options.strict_filesize_constraint
 				type = format.videoCodec != "" and "ovc" or "oac"
+				strict_bitrate = format.videoCodec != "" and video_bitrate or audio_bitrate
 				append(command, {
-					"--#{type}opts-add=minrate=#{bitrate}k",
-					"--#{type}opts-add=maxrate=#{bitrate}k",
+					"--#{type}opts-add=minrate=#{strict_bitrate}k",
+					"--#{type}opts-add=maxrate=#{strict_bitrate}k",
 				})
 		else
 			type = format.videoCodec != "" and "ovc" or "oac"
