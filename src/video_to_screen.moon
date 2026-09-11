@@ -133,6 +133,13 @@ class VideoPoint
 		point = clamp_point(d.top_left, {x: sx, y: sy}, d.bottom_right)
 		@x = math.floor(d.ratios.w * (point.x - d.top_left.x) + 0.5)
 		@y = math.floor(d.ratios.h * (point.y - d.top_left.y) + 0.5)
+		-- Mouse coordinates use inclusive pixel indices, while bottom_right is an
+		-- exclusive bound the cursor can never reach. Snap the last OSD pixel to
+		-- the exclusive video edge so the full frame stays selectable.
+		if point.x >= d.bottom_right.x - 1 and point.x > d.top_left.x
+			@x = math.floor(d.ratios.w * (d.bottom_right.x - d.top_left.x) + 0.5)
+		if point.y >= d.bottom_right.y - 1 and point.y > d.top_left.y
+			@y = math.floor(d.ratios.h * (d.bottom_right.y - d.top_left.y) + 0.5)
 
 	to_screen: =>
 		d = get_video_dimensions!
