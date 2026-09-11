@@ -87,9 +87,9 @@ get_fps_filters = ->
 	return {}
 
 get_contrast_brightness_and_saturation_filters = ->
-	mpv_brightness = mp.get_property("brightness")
-	mpv_contrast = mp.get_property("contrast")
-	mpv_saturation = mp.get_property("saturation")
+	mpv_brightness = mp.get_property_number("brightness", 0)
+	mpv_contrast = mp.get_property_number("contrast", 0)
+	mpv_saturation = mp.get_property_number("saturation", 0)
 
 	if mpv_brightness == 0 and mpv_contrast == 0 and mpv_saturation == 0
 		-- Default values, no need to change anything.
@@ -210,7 +210,8 @@ get_video_filters = (format, region) ->
 
 	append(filters, get_scale_filters!)
 	append(filters, get_fps_filters!)
-	append(filters, get_contrast_brightness_and_saturation_filters!)
+	if options.apply_current_filters
+		append(filters, get_contrast_brightness_and_saturation_filters!)
 
 	append(filters, format\getPostFilters!)
 
