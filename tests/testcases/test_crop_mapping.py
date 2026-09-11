@@ -18,15 +18,7 @@ def _repo_root():
     return Path(__file__).resolve().parents[2]
 
 def _find_moonc():
-    found = shutil.which("moonc")
-    if found:
-        return found
-    try:
-        base = Path("/tmp/opencode/mpv-moonscript-path").read_text().strip()
-    except OSError:
-        return None
-    cand = Path(base) / "bin" / "moonc"
-    return str(cand) if cand.is_file() else None
+    return shutil.which("moonc")
 
 def _find_lua():
     return shutil.which("lua")
@@ -49,10 +41,9 @@ class TestCropMapping(unittest.TestCase):
         out = Path(cls.tmpdir.name) / "video_to_screen.lua"
         proc = subprocess.run([moonc, "-o", str(out), str(src)], capture_output=True, text=True, timeout=60)
         if proc.returncode != 0 or not out.is_file():
-            raise unittest.SkipTest("moonc failed: " + proc.stderr[:500])
+            cls.tmpdir.cleanup()
+            raise AssertionError("moonc failed: " + proc.stderr[:500])
         cls.compiled_src = out.read_text()
-        if "VideoPoint" not in cls.compiled_src:
-            raise unittest.SkipTest("compiled module missing VideoPoint")
 
     @classmethod
     def tearDownClass(cls):
