@@ -10,6 +10,15 @@ Place [this][build] in your mpv `scripts` folder. The `scripts` folder can be fo
 
 Additional details about the folder structure can be found in the [mpv's manual][file locations].
 
+### Encoder executable
+
+Encoding starts a separate `mpv` process. The `mpv` executable must be available on the `PATH` inherited by the player, including when the player is opened from a desktop shortcut or file manager.
+
+- **Windows:** add the directory containing `mpv.exe` to your user `Path` environment variable, then restart mpv. Run `where mpv` in a new Command Prompt to check that Windows can find it.
+- **Linux/macOS:** run `command -v mpv` to check your shell's `PATH`. If encoding reports `mpv: command not found` when launched from the desktop, ensure that launch environment also includes the executable's directory. Homebrew commonly installs it in `/opt/homebrew/bin` on Apple Silicon and `/usr/local/bin` on Intel Macs.
+
+If encoding instead reports a missing codec, check `mpv --ovc=help` for video encoders or `mpv --oac=help` for audio encoders. These lists come from the FFmpeg libraries used by **mpv**; installing a separate `ffmpeg` executable does not necessarily add codecs to mpv. On macOS, the Homebrew formula (`brew install mpv`) is one source of an encoder-enabled build.
+
 By default, the script is activated by the W (shift+w) key.
 
 ## Usage
