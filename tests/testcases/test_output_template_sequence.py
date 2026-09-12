@@ -59,6 +59,23 @@ class TestOutputTemplateSequence(BaseTestCase):
         self.assertEqual(gap_dummy.read_bytes(), b"y" * 16)
         self.assertFalse((self.tempdir / "clip_%04n.mp4").exists())
 
+    def test_repeated_differently_padded_counters_share_sequence(self):
+        self.openTestVideoFile(self.createVideo())
+        self.encodeClip(0, 1, options=_avc_options("multi_%n_%04n"))
+        first = self.tempdir / "multi_1_0001.mp4"
+        self.assertTrue(first.is_file(), self.getLog())
+        self.assertGreater(first.stat().st_size, 0)
+        first_bytes = first.read_bytes()
+        self.assertGreater(len(self.decodeVideo(first)), 0)
+        self.encodeClip(0, 1, options=_avc_options("multi_%n_%04n"))
+        second = self.tempdir / "multi_2_0002.mp4"
+        self.assertTrue(second.is_file(), self.getLog())
+        self.assertGreater(second.stat().st_size, 0)
+        self.assertGreater(len(self.decodeVideo(second)), 0)
+        # Both counters advance together; the first file is preserved.
+        self.assertEqual(first.read_bytes(), first_bytes)
+        self.assertFalse((self.tempdir / "multi_%n_%04n.mp4").exists())
+
     def test_counter_like_source_filename_stays_literal(self):
         media = self.createVideo(name="pct_%04n_%1b_src.mkv")
         self.openTestVideoFile(media)
