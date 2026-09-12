@@ -6,6 +6,9 @@ class TestTwopassConstantQuality(BaseTestCase):
         self.openTestVideoFile(self.createVideo(size="64x64"))
         extra = "--no-config --scripts-clr"
         if output_format == "av1":
+            codecs = self.runTool("mpv", "--no-config", "--scripts-clr", "--ovc=help")
+            if b"libaom-av1" not in codecs:
+                self.skipTest("This mpv build does not include the optional libaom-av1 encoder")
             extra += " --ovcopts-add=cpu-used=8"
         self.encodeClip(0, 1, options={
             "output_format": output_format, "target_filesize": target_filesize,
