@@ -17,7 +17,7 @@ class GIF extends Format
 		end_ts = end_ts\gsub(":", "\\\\:")
 
 		-- Need to use both trim and --start/--end
-		cfilter = "[vid1]trim=start=#{start_ts}:end=#{end_ts}[vidtmp];"
+		cfilter = "[in]trim=start=#{start_ts}:end=#{end_ts}[vidtmp];"
 
 		-- We iterate over commands in the order they are.
 		-- The order is OK except for deinterlace which needs to be applied first:
@@ -52,9 +52,11 @@ class GIF extends Format
 		cfilter = cfilter .. "[vidf][pal]paletteuse=diff_mode=rectangle"
 		if options.gif_dither != 6
 			cfilter = cfilter .. ":dither=bayer:bayer_scale=#{options.gif_dither}"
-		cfilter = cfilter .. "[vo]"
+		cfilter = cfilter .. "[out]"
 
-		append(new_command, { "--lavfi-complex=#{cfilter}" })
+		-- Render subtitles before palette generation. lavfi-complex runs before
+		-- mpv's video filters, so its palette cannot include subtitle colors.
+		append(new_command, { "--vf-add=sub", "--vf-add=lavfi=[#{cfilter}]" })
 
 		return new_command
 
