@@ -5,6 +5,9 @@
 pkgs.mkShell {
   buildInputs = [
     pkgs.mpv
+    pkgs.ffmpeg
+    pkgs.xorg.xorgserver
+    pkgs.xdotool
     pkgs.lua
     pkgs.luaPackages.moonscript
     pkgs.python39

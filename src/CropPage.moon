@@ -17,6 +17,10 @@ class CropPage extends Page
 			@pointB.x = region.x + region.w
 			@pointB.y = region.y + region.h
 
+	show: =>
+		super\show!
+		emit_event("show-crop-page")
+
 	reset: =>
 		dimensions = get_video_dimensions!
 		{x: xa, y: ya} = dimensions.top_left
