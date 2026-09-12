@@ -34,7 +34,7 @@ class CropPage extends Page
 	setPointA: =>
 		posX, posY = mp.get_mouse_pos()
 		@pointA\set_from_screen(posX, posY)
-		emit_event("crop-point-a", @pointA.x, @pointA.y)
+		emit_event("crop-point-a", tostring(@pointA.x), tostring(@pointA.y))
 		if @visible
 			-- No need to clear, as we draw the entire OSD (also it causes flickering)
 			self\draw!
@@ -42,7 +42,7 @@ class CropPage extends Page
 	setPointB: =>
 		posX, posY = mp.get_mouse_pos()
 		@pointB\set_from_screen(posX, posY)
-		emit_event("crop-point-b", @pointB.x, @pointB.y)
+		emit_event("crop-point-b", tostring(@pointB.x), tostring(@pointB.y))
 		if @visible
 			self\draw!
 
