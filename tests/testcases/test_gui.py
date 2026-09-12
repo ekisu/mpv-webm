@@ -30,6 +30,13 @@ class GuiTestCase(BaseTestCase):
                        f"mpv to receive mouse motion to ({x}, {y})")
 
     def guiKey(self, key, event=None):
+        # Lua installs bindings at the next event-loop idle point, after the
+        # page's show event. Wait for the core to register them before X input.
+        mpv_key = {"Escape": "ESC", "Return": "ENTER"}.get(key, key)
+        self.waitUntil(lambda: any(
+            binding.get("key") == mpv_key and binding.get("owner") == "webm"
+            for binding in self.getProperty("input-bindings")),
+            f"webm key binding {mpv_key} to be registered")
         cursor = self.mpv_ipc.event_cursor
         self.display.key(self.window, key)
         if event is not None:
