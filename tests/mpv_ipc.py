@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from abc import ABCMeta
-from typing import Dict, List, Any, Mapping, Optional
+from typing import List, Any, Optional
 import socket
 import time
 import json
 import threading
+import select
 
 @dataclass(frozen=True, eq=True)
 class MpvEvent(metaclass=ABCMeta):
@@ -35,132 +36,188 @@ class MpvReply():
     request_id: Optional[int]
     data: Optional[Any] = None
 
-# TODO Rework this awful naming scheme?
 class MpvIPC:
-    fired_events: List[MpvEvent]
-    unmatched_replies: List[MpvReply]
-
-    _ipc_socket: Optional[socket.socket]
-    _running: bool
-    _pending_request_events: Dict[int, threading.Event]
-    # ??????????
-    _pending_event_events: Dict[str, threading.Event]
-    _pending_request_replies: Dict[int, MpvReply]
-    _pending_event_replies: Dict[str, MpvEvent]
-    _read_thread: Optional[threading.Thread]
-    _last_request_id: int
-
     def __init__(self):
         self.fired_events = []
         self.unanswered_replies = []
-        
+        self.unmatched_replies = self.unanswered_replies
         self._ipc_socket = None
         self._running = False
-        self._pending_request_events = {}
-        self._pending_event_events = {}
-        self._pending_request_replies = {}
-        self._pending_event_replies = {}
         self._read_thread = None
+        self._condition = threading.Condition()
+        self._send_lock = threading.Lock()
+        self._pending_replies = {}
+        self._events = []
+        self._event_cursor = 0
         self._last_request_id = 0
+        self._buffer = bytearray()
+
+    @property
+    def event_cursor(self) -> int:
+        with self._condition:
+            return self._event_cursor
 
     def connect(self, ipc_socket_filename: str, connection_timeout: float = 5):
-        self._ipc_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        connection_start = time.time()
-
-        while time.time() - connection_start < connection_timeout:
+        deadline = time.monotonic() + connection_timeout
+        while True:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise TimeoutError('Timed out trying to connect to the IPC')
+            sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
             try:
-                self._ipc_socket.connect(ipc_socket_filename)
-                self._ipc_socket.settimeout(0.1)
-
+                sock.settimeout(remaining)
+                sock.connect(ipc_socket_filename)
+                sock.setblocking(False)
+                self._ipc_socket = sock
                 return
-            except FileNotFoundError:
-                pass
-            except ConnectionRefusedError:
-                pass
-        
-        raise TimeoutError('Timed out trying to connect to the IPC')
-    
-    def _send_to_ipc_socket(self, data: dict) -> None:
-        if not self._running:
-            raise ConnectionError('IPC is not running')
+            except (FileNotFoundError, ConnectionRefusedError):
+                sock.close()
+                time.sleep(min(0.01, max(0, deadline - time.monotonic())))
+            except BaseException:
+                sock.close()
+                raise
 
-        self._ipc_socket.send(json.dumps(data).encode('utf-8') + b'\n')
-    
+    def _disconnect(self):
+        with self._condition:
+            self._running = False
+            self._condition.notify_all()
+
     def _process_data(self, data: bytes):
-        lines = data.decode('utf-8').split('\n')
-        json_responses = [json.loads(line) for line in lines if line.strip() != '']
-
-        new_events = [MpvEvent.from_dict(response) for response in json_responses if 'event' in response]
-        new_replies = [MpvReply(**reply) for reply in json_responses if 'event' not in reply]
-
-        replies_for_pending_requests = {reply.request_id: reply for reply in new_replies if reply.request_id in self._pending_request_events}
-        new_unanswered_replies = [reply for reply in new_replies if reply.request_id not in self._pending_request_events]
-
-        replies_for_pending_events = {event.event_name: event for event in new_events if event.event_name in self._pending_event_events}
-
-        self.fired_events.extend(new_events)
-        self.unanswered_replies.extend(new_unanswered_replies)
-
-        # Fire events for pending requests
-        self._pending_request_replies.update(replies_for_pending_requests)
-        for request_id, _ in replies_for_pending_requests.items():
-            event = self._pending_request_events.pop(request_id)
-            event.set()
-
-        self._pending_event_replies.update(replies_for_pending_events)
-        for new_event in new_events:
-            if new_event.event_name in self._pending_event_events:
-                event = self._pending_event_events.pop(new_event.event_name)
-                event.set()
+        # Decode only complete lines: even a UTF-8 code point may span recv calls.
+        self._buffer.extend(data)
+        while b'\n' in self._buffer:
+            line, _, rest = self._buffer.partition(b'\n')
+            self._buffer = bytearray(rest)
+            if not line.strip():
+                continue
+            response = json.loads(line.decode('utf-8'))
+            with self._condition:
+                if 'event' in response:
+                    event = MpvEvent.from_dict(response)
+                    self._event_cursor += 1
+                    self.fired_events.append(event)
+                    self._events.append((self._event_cursor, event))
+                else:
+                    reply = MpvReply(**response)
+                    if reply.request_id in self._pending_replies:
+                        self._pending_replies[reply.request_id] = reply
+                    else:
+                        self.unanswered_replies.append(reply)
+                self._condition.notify_all()
 
     def _read_loop(self):
+        sock = self._ipc_socket
         try:
             while self._running:
+                if not select.select([sock], [], [], 0.1)[0]:
+                    continue
                 try:
-                    data = self._ipc_socket.recv(4096)
-
-                    self._process_data(data)
-                except socket.timeout:
-                    pass
+                    data = sock.recv(4096)
+                except BlockingIOError:
+                    continue
+                if not data:
+                    break
+                self._process_data(data)
+        except (OSError, ValueError, TypeError, KeyError):
+            # A broken connection or invalid protocol must wake every waiter.
+            pass
         finally:
-            self._running = False
-    
+            self._disconnect()
+
     def start(self):
-        self._running = True
-        self._read_thread = threading.Thread(target=self._read_loop)
-        self._read_thread.start()
-    
+        with self._condition:
+            if self._running:
+                return
+            if self._ipc_socket is None or self._ipc_socket.fileno() < 0:
+                raise ConnectionError('IPC is not connected')
+            self._ipc_socket.setblocking(False)
+            self._running = True
+            self._read_thread = threading.Thread(target=self._read_loop)
+            self._read_thread.start()
+
     def stop(self):
-        self._running = False
-        self._read_thread.join()
+        self._disconnect()
+        sock = self._ipc_socket
+        if sock is not None:
+            try:
+                sock.shutdown(socket.SHUT_RDWR)
+            except OSError:
+                pass
+        thread = self._read_thread
+        if thread is not None and thread is not threading.current_thread():
+            thread.join()
+        if sock is not None:
+            sock.close()
 
-        self._ipc_socket.close()
-    
+    def _send(self, data: bytes, deadline: float):
+        if not self._send_lock.acquire(timeout=max(0, deadline - time.monotonic())):
+            raise TimeoutError('Timed out sending command')
+        try:
+            sock = self._ipc_socket
+            view = memoryview(data)
+            while view:
+                with self._condition:
+                    if not self._running:
+                        raise ConnectionError('IPC is disconnected')
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    # A partially sent frame cannot safely be followed by another.
+                    self._disconnect()
+                    raise TimeoutError('Timed out sending command')
+                if not select.select([], [sock], [], min(remaining, 0.1))[1]:
+                    continue
+                try:
+                    sent = sock.send(view)
+                except BlockingIOError:
+                    continue
+                if sent == 0:
+                    raise ConnectionError('IPC is disconnected')
+                view = view[sent:]
+        except TimeoutError:
+            raise
+        except (OSError, ValueError) as error:
+            self._disconnect()
+            raise ConnectionError('IPC is disconnected') from error
+        finally:
+            self._send_lock.release()
+
     def send_command(self, command_data: dict, timeout: float = 5) -> MpvReply:
-        new_request_id = self._last_request_id + 1
-        command_with_request_id = {**command_data, 'request_id': new_request_id}
+        deadline = time.monotonic() + timeout
+        with self._condition:
+            if not self._running:
+                raise ConnectionError('IPC is not running')
+            self._last_request_id += 1
+            request_id = self._last_request_id
+            self._pending_replies[request_id] = None
+        try:
+            data = json.dumps({**command_data, 'request_id': request_id}).encode('utf-8') + b'\n'
+            self._send(data, deadline)
+            with self._condition:
+                while self._pending_replies[request_id] is None:
+                    if not self._running:
+                        raise ConnectionError('IPC is disconnected')
+                    remaining = deadline - time.monotonic()
+                    if remaining <= 0:
+                        raise TimeoutError('Timed out waiting for reply')
+                    self._condition.wait(remaining)
+                return self._pending_replies[request_id]
+        finally:
+            with self._condition:
+                self._pending_replies.pop(request_id, None)
 
-        event = threading.Event()
-        self._pending_request_events[new_request_id] = event
-
-        self._send_to_ipc_socket(command_with_request_id)
-        self._last_request_id = new_request_id
-        got_reply = event.wait(timeout)
-
-        if not got_reply:
-            raise TimeoutError('Timed out waiting for reply')
-
-        return self._pending_request_replies[new_request_id]
-
-    def wait_for_event(self, event_name: str, timeout: float = 5) -> Optional[MpvEvent]:
-        if any(event.event_name == event_name for event in self.fired_events):
-            return True
-        
-        event = threading.Event()
-        self._pending_event_events[event_name] = event
-        got_reply = event.wait(timeout)
-
-        if not got_reply:
-            return None
-        
-        return self._pending_event_replies[event_name]
+    def wait_for_event(self, event_name: str, timeout: float = 5,
+                       after: Optional[int] = None) -> Optional[MpvEvent]:
+        """Consume the oldest matching event, optionally newer than a cursor."""
+        deadline = time.monotonic() + timeout
+        with self._condition:
+            while True:
+                for index, (cursor, event) in enumerate(self._events):
+                    if event.event_name == event_name and (after is None or cursor > after):
+                        self._events.pop(index)
+                        return event
+                if not self._running:
+                    raise ConnectionError('IPC is disconnected')
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    return None
+                self._condition.wait(remaining)

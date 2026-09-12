@@ -17,6 +17,10 @@ class CropPage extends Page
 			@pointB.x = region.x + region.w
 			@pointB.y = region.y + region.h
 
+	show: =>
+		super\show!
+		emit_event("show-crop-page")
+
 	reset: =>
 		dimensions = get_video_dimensions!
 		{x: xa, y: ya} = dimensions.top_left
@@ -30,6 +34,7 @@ class CropPage extends Page
 	setPointA: =>
 		posX, posY = mp.get_mouse_pos()
 		@pointA\set_from_screen(posX, posY)
+		emit_event("crop-point-a", tostring(@pointA.x), tostring(@pointA.y))
 		if @visible
 			-- No need to clear, as we draw the entire OSD (also it causes flickering)
 			self\draw!
@@ -37,6 +42,7 @@ class CropPage extends Page
 	setPointB: =>
 		posX, posY = mp.get_mouse_pos()
 		@pointB\set_from_screen(posX, posY)
+		emit_event("crop-point-b", tostring(@pointB.x), tostring(@pointB.y))
 		if @visible
 			self\draw!
 

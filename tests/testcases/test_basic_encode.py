@@ -1,20 +1,26 @@
-from tests.mpv_ipc import MpvScriptMessageEvent
 from .base_test_case import BaseTestCase
-from pathlib import Path
 
-import time
 
 class TestBasicEncode(BaseTestCase):
     def test_basic_encode(self):
-        self.openTestVideoFile(Path('tests/videos/big_buck_bunny_10s.mp4'))
+        self.openTestVideoFile(self.createVideo())
+        self.encodeClip(0, 1, options={"output_template": "basic"})
+        self.assertGreater((self.tempdir / "basic.webm").stat().st_size, 0)
 
-        self.sendKeyPress('Shift+W')
-        self.waitForEvent('webm-show-main-page')
-
-        # I'm not sure why this is needed...
-        time.sleep(1)
-        self.sendKeyPress('e')
-
-        finished_event = self.waitForEvent('webm-encode-finished', timeout=240)
-        self.assertIsInstance(finished_event, MpvScriptMessageEvent)
-        self.assertEqual(['webm-encode-finished', 'success'], finished_event.args)
+    def test_repeated_encodes_use_new_range_and_events(self):
+        self.openTestVideoFile(self.createVideo())
+        options = {"output_format": "avc", "twopass": False,
+                   "target_filesize": 100, "output_template": "short"}
+        first = self.encodeClip(0, 0.5, options=options)
+        self.assertEqual(self.getState()["endTime"], 0.5)
+        second = self.encodeClip(1, 2, options={"output_template": "long"})
+        self.assertIsNot(first, second)
+        self.assertEqual(self.getState()["startTime"], 1)
+        self.assertEqual(self.getState()["endTime"], 2)
+        short = self.decodeVideo(self.tempdir / "short.mp4")
+        long = self.decodeVideo(self.tempdir / "long.mp4")
+        frame_size = 320 * 180 * 3
+        self.assertEqual(len(short) % frame_size, 0)
+        self.assertEqual(len(long) % frame_size, 0)
+        self.assertGreater(len(short), 0)
+        self.assertGreater(len(long), len(short))
