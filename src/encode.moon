@@ -385,7 +385,10 @@ encode = (region, startTime, endTime) ->
 
 	-- Do the first pass now, as it won't require the output path. I don't think this works on streams.
 	-- Also this will ignore run_detached, at least for the first pass.
-	if options.twopass and format.supportsTwopass and not is_stream
+	-- The current x264/x265 settings cannot use a second pass in constant-quality mode.
+	-- Other encoders, including libvpx and libaom, can still use two passes.
+	constant_quality_x26x = options.target_filesize <= 0 and (format.videoCodec == "libx264" or format.videoCodec == "libx265")
+	if options.twopass and format.supportsTwopass and not constant_quality_x26x and not is_stream
 		-- copy the commandline
 		first_pass_cmdline = [arg for arg in *command]
 		append(first_pass_cmdline, {
