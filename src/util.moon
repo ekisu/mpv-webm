@@ -79,7 +79,23 @@ expand_properties = (text, magic="$") ->
 
 	return text
 
-format_filename = (startTime, endTime, videoFormat) ->
+-- Sequence numbering for output_template: %n and %0Nn (e.g. %04n).
+-- %n numbers 1, 2, 3, ...; %04n zero-pads to the requested width.
+-- When the template holds a counter, format_filename selects the first
+-- filename (starting at 1) that is not already taken in the resolved
+-- output directory. There is no persistent counter: deleting files
+-- frees their numbers again, and two encodes racing each other
+-- (e.g. concurrent mpv processes) may still pick the same name.
+-- Templates without a counter keep the previous behavior.
+sequence_escape_placeholder = string.char(31) .. "MPVWEBMESC" .. string.char(31)
+sequence_placeholder_prefix = string.char(31) .. "MPVWEBMSEQ"
+
+format_sequence_number = (n, width) ->
+	if width and width > 0
+		return string.format("%0#{width}d", n)
+	tostring(n)
+
+format_filename = (startTime, endTime, videoFormat, outDir) ->
 	hasAudioCodec = videoFormat.audioCodec != ""
 	replaceFirst =
 		"%%mp": "%%mH.%%mM.%%mS"
@@ -103,31 +119,54 @@ format_filename = (startTime, endTime, videoFormat) ->
 		"%%ms": string.format("%d", math.floor(endTime))
 		"%%mf": string.format("%s", endTime)
 		"%%mT": string.sub(string.format("%.3f", endTime%1), 3)
-		"%%f": mp.get_property("filename")
-		"%%F": mp.get_property("filename/no-ext")
 		"%%s": seconds_to_path_element(startTime)
 		"%%S": seconds_to_path_element(startTime, true)
 		"%%e": seconds_to_path_element(endTime)
 		"%%E": seconds_to_path_element(endTime, true)
-		"%%T": mp.get_property("media-title")
 		"%%M": (mp.get_property_native('aid') and not mp.get_property_native('mute') and hasAudioCodec) and '-audio' or ''
 		"%%R": (options.scale_height != -1) and "-#{options.scale_height}p" or "-#{mp.get_property_native('height')}p"
 		"%%mb": options.target_filesize/1000
 		"%%t%%": "%%"
+	mediaTable =
+		"%%f": mp.get_property("filename")
+		"%%F": mp.get_property("filename/no-ext")
+		"%%T": mp.get_property("media-title")
 	filename = options.output_template
+
+	-- Protect escaped percents (%%) so %%n stays a literal %n.
+	filename, _ = filename\gsub("%%%%", sequence_escape_placeholder)
+
+	-- Extract sequence counters before any other expansion, so counter-like
+	-- text coming from media properties (%f/%F/%T/...) is never expanded.
+	seq_widths = {}
+	filename, _ = filename\gsub("%%(0?%d*)n", (digits) ->
+		width = tonumber(digits) or 0
+		seq_widths[#seq_widths + 1] = width
+		"#{sequence_placeholder_prefix}#{#seq_widths}#{string.char(31)}"
+	)
+	has_seq = #seq_widths > 0
+
+	-- Restore escaped percents right away; only real counters use placeholders.
+	filename, _ = filename\gsub(sequence_escape_placeholder, -> "%")
 
 	for format, value in pairs replaceFirst
 		filename, _ = filename\gsub(format, value)
 	for format, value in pairs replaceTable
 		filename, _ = filename\gsub(format, value)
+	-- Media-derived values use function replacements so % inside real
+	-- filenames is inserted literally instead of acting as gsub syntax.
+	for format, value in pairs mediaTable
+		if value != nil
+			val = value
+			filename, _ = filename\gsub(format, -> val)
 
 	if mp.get_property_bool("demuxer-via-network", false)
 		filename, _ = filename\gsub("%%X{([^}]*)}", "%1")
 		filename, _ = filename\gsub("%%x", "")
 	else
 		x = string.gsub(mp.get_property("stream-open-filename", ""), string.gsub(mp.get_property("filename", ""), "%W", "%%%1") .. "$", "")
-		filename, _ = filename\gsub("%%X{[^}]*}", x)
-		filename, _ = filename\gsub("%%x", x)
+		filename, _ = filename\gsub("%%X{[^}]*}", -> x)
+		filename, _ = filename\gsub("%%x", -> x)
 
 	filename = expand_properties(filename, "%")
 
@@ -139,7 +178,33 @@ format_filename = (startTime, endTime, videoFormat) ->
 	-- Linux: /
 	filename, _ = filename\gsub("[<>:\"/\\|?*]", "")
 
-	return "#{filename}.#{videoFormat.outputExtension}"
+	if not has_seq
+		return "#{filename}.#{videoFormat.outputExtension}"
+
+	-- A conditional block (%X{...}, property fallback) may have swallowed
+	-- every counter; then there is nothing to number and no search to run.
+	if filename\find(sequence_placeholder_prefix, 1, true) == nil
+		return "#{filename}.#{videoFormat.outputExtension}"
+
+	apply_sequence = (n) ->
+		name = filename
+		for i, width in ipairs seq_widths
+			placeholder = "#{sequence_placeholder_prefix}#{i}#{string.char(31)}"
+			formatted = format_sequence_number(n, width)
+			name, _ = name\gsub(placeholder, formatted)
+		name
+
+	if outDir == nil
+		return "#{apply_sequence(1)}.#{videoFormat.outputExtension}"
+
+	-- An empty directory means the current one (bare video filename).
+	checkDir = outDir == "" and "." or outDir
+	n = 1
+	while true
+		candidate = "#{apply_sequence(n)}.#{videoFormat.outputExtension}"
+		unless file_exists(utils.join_path(checkDir, candidate))
+			return candidate
+		n += 1
 
 parse_directory = (dir) ->
 	home_dir = os.getenv("HOME")
