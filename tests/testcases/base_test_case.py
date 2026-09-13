@@ -17,6 +17,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 class BaseTestCase(unittest.TestCase):
     # GUI subclasses supply a real video output and an isolated DISPLAY.
+    mpv_executable = "mpv"
     mpv_args = ()
     mpv_env = None
 
@@ -31,7 +32,7 @@ class BaseTestCase(unittest.TestCase):
         self.log_reader = None
         socket_address = str(self.tempdir / "ipc")
         args = [
-            "mpv", "-v", "--no-config", "--vo=null", "--ao=null",
+            self.mpv_executable, "-v", "--no-config", "--vo=null", "--ao=null",
             "--load-scripts=no", "--scripts-clr", "--idle=yes",
             "--input-ipc-server=" + socket_address,
             *self.mpv_args,

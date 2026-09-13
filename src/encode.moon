@@ -275,8 +275,25 @@ find_path = (startTime, endTime) ->
 
 	return path, is_stream, is_temporary, startTime, endTime
 
+-- Probe the same executable before entering any launch mode (including the
+-- progress shell and detached mode, which otherwise hide spawn failures).
+check_encoder = ->
+    result = utils.subprocess({args: {"mpv", "--no-config", "--version"}, cancellable: false})
+    if result.status == 0
+        return true
+    explanation = "Cannot start the mpv encoder. Add the folder containing mpv to PATH, then restart the player. See README: Encoder executable."
+    if result.status and result.status > 0
+        explanation = "The mpv encoder failed its startup check. Run mpv --version and check the logs for details."
+    msg.error(explanation)
+    msg.error("Encoder startup check: ", result.error or "", result.stderr or "", result.stdout or "")
+    message(explanation, 10)
+    emit_event("encode-finished", "fail", explanation)
+    return false
+
 encode = (region, startTime, endTime) ->
 	format = formats[options.output_format]
+	if not check_encoder!
+		return
 
 	originalStartTime = startTime
 	originalEndTime = endTime
