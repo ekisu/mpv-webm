@@ -23,6 +23,7 @@ register_test_handlers = (main_page) ->
         emit_event("range-set")
     )
     mp.register_script_message("mpv-webm-encode", -> main_page\encode!)
+    mp.register_script_message("mpv-webm-upload", -> main_page\upload!)
     mp.register_script_message("mpv-webm-get-state", ->
         mouse_x, mouse_y = mp.get_mouse_pos!
         osd_w, osd_h = mp.get_osd_size!

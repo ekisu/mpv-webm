@@ -24,6 +24,18 @@ By default, the script is activated by the W (shift+w) key.
 ## Usage
 Follow the on-screen instructions. Encoded WebM files will have audio/subs based on the current playback options (i.e. will be muted if no audio, won't have hardcoded subs if subs aren't visible).
 
+### Uploading
+
+Press `u` (encode & upload) on the WebM maker page to encode a clip and upload it in one step. The destination is set in the options (`o`) and stored in `webm.conf`:
+
+- `upload_host` — `catbox` (permanent) or `litterbox` (temporary).
+- `litterbox_time` — expiry for litterbox uploads: `1h`, `12h`, `24h` or `72h`.
+- `catbox_userhash` — optional Catbox account hash; account uploads are permanent and manageable.
+- `upload_curl_path` — the `curl` executable used for the multipart upload.
+- `open_after_upload` — open the link in the browser as soon as it is ready.
+
+Uploads use `curl`; when it is not on `PATH`, the `u` line is hidden. The resulting URL is copied to the clipboard (mpv's `clipboard/text` when available, otherwise `wl-copy`, `xclip` or `pbcopy`). Only the Catbox services are supported: Streamable requires an account for uploads, so it is not offered.
+
 ## Configuration
 You can configure the script's defaults by either changing the `options` at the beginning of the script, or placing a `webm.conf` inside the `script-opts` directory. A sample `webm.conf` file with the default options can be found [here][conf]. Note that you don't need to specify all options, only the ones you wish to override.
 

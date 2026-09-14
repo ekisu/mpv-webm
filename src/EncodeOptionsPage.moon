@@ -158,6 +158,9 @@ class EncodeOptionsPage extends Page
 		formatOpts =
 			possibleValues: [{fId, formats[fId].displayName} for fId in *formatIds]
 
+		uploadHostOpts =
+			possibleValues: upload_host_possible_values!
+
 		gifDitherOpts =
 			possibleValues: {{0, "bayer_scale 0"}, {1, "bayer_scale 1"},
 			{2, "bayer_scale 2"}, {3, "bayer_scale 3"}, {4, "bayer_scale 4"}, {5, "bayer_scale 5"}, {6, "sierra2_4a"}}
@@ -166,6 +169,7 @@ class EncodeOptionsPage extends Page
 		-- by dicts on Lua.
 		@options = {
 			{"output_format", Option("list", "Output Format", options.output_format, formatOpts)}
+			{"upload_host", Option("list", "Upload Destination", options.upload_host, uploadHostOpts, -> is_upload_available!)}
 			{"twopass", Option("bool", "Two Pass", options.twopass)},
 			{"apply_current_filters", Option("bool", "Apply Current Video Filters", options.apply_current_filters)}
 			{"scale_height", Option("list", "Scale Height", options.scale_height, scaleHeightOpts)},

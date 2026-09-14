@@ -89,6 +89,19 @@ local options = {
 	-- MPV command to run upon successful encoding
 	-- %{output} will be replaced with the path to the resulting file.
 	completion_command = "",
+	-- Where "encode & upload" (u) sends the clip. Only the Catbox services are
+	-- supported: "catbox" (permanent until 2 years of inactivity) or
+	-- "litterbox" (temporary, expires after litterbox_time).
+	upload_host = "catbox",
+	-- Expiry for litterbox uploads: 1h, 12h, 24h or 72h.
+	litterbox_time = "24h",
+	-- Optional Catbox account hash. Account uploads are permanent and can be
+	-- managed (deleted) from the Catbox account.
+	catbox_userhash = "",
+	-- curl executable used for the multipart upload.
+	upload_curl_path = "curl",
+	-- Open the uploaded link in the browser as soon as it is ready.
+	open_after_upload = false,
 }
 
 mpopts.read_options(options)
