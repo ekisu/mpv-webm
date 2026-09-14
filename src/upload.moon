@@ -87,7 +87,7 @@ copy_to_clipboard = (text) ->
 			args: args
 			stdin_data: text
 			playback_only: false
-		})
+		}, (-> nil))
 		return true if handle
 	return false
 

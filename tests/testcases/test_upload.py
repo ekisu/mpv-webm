@@ -36,61 +36,50 @@ exit 0
 
 
 class TestUpload(BaseTestCase):
-    def makeStubCurl(self):
-        stub = self.tempdir / "stub-curl"
-        stub.write_text(STUB_CURL)
-        stub.chmod(stub.stat().st_mode | stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH)
-        return stub
+    def setUp(self):
+        super().setUp()
+        self.stub = self.tempdir / "stub-curl"
+        self.stub.write_text(STUB_CURL)
+        self.stub.chmod(self.stub.stat().st_mode | stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH)
 
-    def upload(self):
+    def encodeAndUpload(self, **options):
+        self.openTestVideoFile(self.createVideo(size="320x180", duration=3))
+        settings = {
+            "output_format": "avc",
+            "output_template": "clip",
+            "display_progress": False,
+            "run_detached": False,
+            "upload_curl_path": str(self.stub),
+        }
+        settings.update(options)
+        self.updateScriptOptions(settings)
+        self.setRange(1, 2)
         event = self.scriptMessage("mpv-webm-upload", event="webm-upload-finished", timeout=60)
         self.assertEqual(event.args, ["webm-upload-finished", "done"], self.getLog())
+        self.assertTrue((self.tempdir / "clip.mp4").exists())
         return (self.tempdir / "stub-args.txt").read_text()
 
-    def closeUploadPage(self):
-        self.sendKeyPress("ESC")
-        self.waitUntil(lambda: self.getState()["mainVisible"], "main page after closing upload")
+    def test_catbox_upload(self):
+        args = self.encodeAndUpload(upload_host="catbox")
+        self.assertIn("https://catbox.moe/user/api.php", args)
+        self.assertIn("reqtype=fileupload", args)
+        self.assertIn("fileToUpload=@", args)
+        # catbox is permanent and optional account-based: no expiry, no hash here.
+        self.assertNotIn("time=", args)
+        self.assertNotIn("userhash=", args)
 
-    def test_encode_and_upload_both_hosts(self):
-        stub = self.makeStubCurl()
-        self.openTestVideoFile(self.createVideo(size="320x180", duration=3))
-
-        cases = (
-            ("catbox", "24h", ["https://catbox.moe/user/api.php"], ["time=", "userhash="]),
-            ("litterbox", "72h",
-             ["https://litterbox.catbox.moe/resources/internals/api.php", "time=72h"], ["userhash="]),
-        )
-        for host, litterbox_time, present, absent in cases:
-            with self.subTest(host=host):
-                self.updateScriptOptions({
-                    "output_format": "avc",
-                    "output_template": "clip",
-                    "display_progress": False,
-                    "run_detached": False,
-                    "upload_host": host,
-                    "litterbox_time": litterbox_time,
-                    "upload_curl_path": str(stub),
-                })
-                self.setRange(1, 2)
-                args = self.upload()
-
-                for token in present:
-                    self.assertIn(token, args)
-                for token in absent:
-                    self.assertNotIn(token, args)
-                self.assertIn("reqtype=fileupload", args)
-                self.assertIn("fileToUpload=@", args)
-                self.assertTrue((self.tempdir / "clip.mp4").exists())
-
-                self.closeUploadPage()
+    def test_litterbox_upload_sends_expiry(self):
+        args = self.encodeAndUpload(upload_host="litterbox", litterbox_time="72h")
+        self.assertIn("https://litterbox.catbox.moe/resources/internals/api.php", args)
+        self.assertIn("time=72h", args)
+        self.assertNotIn("userhash=", args)
 
     def test_upload_aborts_without_times(self):
-        self.makeStubCurl()
         self.openTestVideoFile(self.createVideo(size="320x180", duration=3))
         self.updateScriptOptions({
             "output_format": "avc",
             "output_template": "clip",
-            "upload_curl_path": str(self.tempdir / "stub-curl"),
+            "upload_curl_path": str(self.stub),
         })
         self.setRange(-1, -1)
         # No encode should start, so no upload-finished event should arrive.

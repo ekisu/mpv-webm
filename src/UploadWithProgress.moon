@@ -85,9 +85,9 @@ class UploadWithProgress extends Page
 
 		if uploadOk
 			@url = response
-			copy_to_clipboard(@url)
-			open_url(@url) if options.open_after_upload
 			@state = "done"
+			pcall(() -> copy_to_clipboard(@url))
+			pcall(() -> open_url(@url)) if options.open_after_upload
 		else
 			@state = "failed"
 			@errorMessage = response
