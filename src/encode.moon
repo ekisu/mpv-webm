@@ -182,6 +182,46 @@ get_metadata_flags = ->
 	title = mp.get_property("filename/no-ext")
 	return {"--oset-metadata=title=%#{string.len(title)}%#{title}"}
 
+-- Wrap a filter parameter in mpv's raw string syntax so property expansion
+-- can't interpret anything inside it.
+quote_filter_param = (value) ->
+	"%#{string.len(value)}%#{value}"
+
+-- mpv exposes libavfilter bridge filters as "lavfi-<name>" and reports their
+-- arguments as positional placeholders (@0, @1, ...) or as regular option
+-- names. The placeholder form is only understood by mpv's own option parser,
+-- so turn it into a libavfilter-style argument list. Values are left unquoted
+-- because the GIF format embeds these filters in a raw graph, where mpv's
+-- property expansion (and with it the %N% raw string syntax) does not run.
+serialize_lavfi_filter = (filter) ->
+	name = filter["name"]
+	params = filter["params"] or {}
+
+	if name == "lavfi"
+		graph = params["graph"]
+		return graph and "#{name}=[#{graph}]" or name
+
+	positional = {}
+	named = {}
+	for key, value in pairs params
+		index = key\match("^@(%d+)$")
+		if index
+			positional[tonumber(index) + 1] = value
+		else
+			named[key] = value
+
+	args = {}
+	if #positional > 0
+		for value in *positional
+			append(args, {value})
+	else
+		keys = [key for key in pairs named]
+		table.sort(keys)
+		for key in *keys
+			append(args, {"#{key}=#{named[key]}"})
+
+	return #args > 0 and "#{name}=#{table.concat(args, ":")}" or name
+
 apply_current_filters = (filters) ->
 	vf = mp.get_property_native("vf")
 	msg.verbose("apply_current_filters: got #{#vf} currently applied.")
@@ -194,8 +234,11 @@ apply_current_filters = (filters) ->
 			continue
 		str = filter["name"]
 		params = filter["params"] or {}
-		for k, v in pairs params
-			str = str .. ":#{k}=%#{string.len(v)}%#{v}"
+		if str == "lavfi" or str\match("^lavfi%-")
+			str = serialize_lavfi_filter(filter)
+		else
+			for k, v in pairs params
+				str = str .. ":#{k}=#{quote_filter_param(v)}"
 		append(filters, {str})
 
 get_video_filters = (format, region) ->
