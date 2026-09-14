@@ -290,9 +290,10 @@ check_encoder = ->
     emit_event("encode-finished", "fail", explanation)
     return false
 
-encode = (region, startTime, endTime) ->
+encode = (region, startTime, endTime, onDone) ->
 	format = formats[options.output_format]
 	if not check_encoder!
+		onDone(false) if onDone
 		return
 
 	originalStartTime = startTime
@@ -300,6 +301,7 @@ encode = (region, startTime, endTime) ->
 	path, is_stream, is_temporary, startTime, endTime = find_path(startTime, endTime) 
 	if not path
 		message("No file is being played")
+		onDone(false) if onDone
 		return
 
 	command = {
@@ -419,6 +421,7 @@ encode = (region, startTime, endTime) ->
 		if not res
 			message("First pass failed! Check the logs for details.")
 			emit_event("encode-finished", "fail")
+			onDone(false) if onDone
 
 			return
 		
@@ -437,7 +440,7 @@ encode = (region, startTime, endTime) ->
 	msg.info("Encoding to", out_path)
 	msg.verbose("Command line:", table.concat(command, " "))
 
-	if options.run_detached
+	if options.run_detached and not onDone
 		message("Started encode, process was detached.")
 		utils.subprocess_detached({args: command})
 	else
@@ -453,9 +456,11 @@ encode = (region, startTime, endTime) ->
 			emit_event("encode-finished", "success")
 			if options.completion_command != ""
 				mp.command(options.completion_command\gsub("%%{output}", out_path))
+			onDone(true, out_path) if onDone
 		else
 			message("Encode failed! Check the logs for details.")
 			emit_event("encode-finished", "fail")
+			onDone(false) if onDone
 
 		
 		-- Clean up pass log file.

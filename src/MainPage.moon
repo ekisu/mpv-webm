@@ -9,6 +9,7 @@ class MainPage extends Page
 			"o": self\changeOptions
 			"p": self\preview
 			"e": self\encode
+			"u": self\upload
 			"ESC": self\hide
 		@startTime = -1
 		@endTime = -1
@@ -60,7 +61,9 @@ class MainPage extends Page
 		ass\append("#{bold('@:')} jump to end time\\N")
 		ass\append("#{bold('o:')} change encode options\\N")
 		ass\append("#{bold('p:')} preview\\N")
-		ass\append("#{bold('e:')} encode\\N\\N")
+		ass\append("#{bold('e:')} encode\\N")
+		ass\append("#{bold('u:')} encode & upload\\N") if is_upload_available!
+		ass\append("\\N")
 		ass\append("#{bold('ESC:')} close\\N")
 		mp.set_osd_ass(window_w, window_h, ass.text)
 	
@@ -94,6 +97,35 @@ class MainPage extends Page
 		self\hide!
 		previewPage = PreviewPage(self\onPreviewEnded, @region, @startTime, @endTime)
 		previewPage\show!
+
+	onEncodedForUpload: (success, outPath) =>
+		if not success or not outPath
+			self\show!
+			return
+		uploadPage = UploadWithProgress(self\onUploadEnded, outPath)
+		uploadPage\show!
+
+	onUploadEnded: (state) =>
+		if state == "options"
+			self\changeOptions!
+		else
+			self\show!
+
+	upload: =>
+		if not is_upload_available!
+			message("Uploads need curl on PATH. Set upload_curl_path in webm.conf.")
+			return
+		if @startTime < 0
+			message("No start time, aborting")
+			return
+		if @endTime < 0
+			message("No end time, aborting")
+			return
+		if @startTime >= @endTime
+			message("Start time is ahead of end time, aborting")
+			return
+		self\hide!
+		encode(@region, @startTime, @endTime, self\onEncodedForUpload)
 
 	encode: =>
 		self\hide!
