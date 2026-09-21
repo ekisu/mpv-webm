@@ -6,18 +6,26 @@ class GIF extends Format
 		@audioCodec = ""
 		@outputExtension = "gif"
 		@acceptsBitrate = false
+		-- GIF builds its own video filter graph, so it applies the speed
+		-- trim/setpts itself; encode then skips the generic video speed flags.
+		@handlesSpeedInFilterGraph = true
 
-	postCommandModifier: (command, region, startTime, endTime) =>
+	postCommandModifier: (command, region, times) =>
 		new_command = {}
 
-		start_ts = seconds_to_time_string(startTime, false, true)
-		end_ts = seconds_to_time_string(endTime, false, true)
+		start_ts = seconds_to_time_string(times.sourceStart, false, true)
+		end_ts = seconds_to_time_string(times.sourceEnd, false, true)
 		-- Escape hell...
 		start_ts = start_ts\gsub(":", "\\\\:")
 		end_ts = end_ts\gsub(":", "\\\\:")
 
 		-- Need to use both trim and --start/--end
 		cfilter = "[in]trim=start=#{start_ts}:end=#{end_ts}[vidtmp];"
+
+		-- Mirror the default trim -> setpts order inside the graph.
+		if times.speed != 1
+			cfilter = cfilter .. "[vidtmp]setpts=(PTS-STARTPTS)/#{times.speed}[vidtmp];"
+			cfilter = cfilter .. "[vidtmp]setpts=PTS+#{times.sourceStart}/TB[vidtmp];"
 
 		-- We iterate over commands in the order they are.
 		-- The order is OK except for deinterlace which needs to be applied first:

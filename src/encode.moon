@@ -142,8 +142,6 @@ get_sub_options = ->
 	append_property(ret, "sub-ass-use-video-data")
 	append_property(ret, "sub-auto")
 	append_property(ret, "sub-pos")
-	append_property(ret, "sub-delay")
-	append_property(ret, "sub-speed")
 	append_property(ret, "sub-scale")
 	append_property(ret, "sub-font")
 	append_property(ret, "sub-font-size")
@@ -167,15 +165,77 @@ get_sub_options = ->
 
 	return ret
 
-get_speed_flags = ->
+-- Handle speed changes
+--
+-- Two time domains are involved:
+--   source  - the user's selection inside the file (sourceStart/sourceEnd)
+--   encoder - the timeline mpv's encoder uses, after the filter chain (with
+--             possible speed changes) is applied
+--
+-- mpv's --start and --end options are a little counter-intuitive:
+-- 1. --start takes a source time as input and seeks to that point.
+-- 2. The filters are applied
+-- 3. then the same --start time is used to encode.
+-- But if the timeline has changed due to speed filters, the start time is now
+-- offset and will be wrong, leading to the wrong part of the video being encoded
+-- Same applies for the end time, due to timeline changes the end time can be offset.
+
+-- To fix this, we need to offset the filtered timeline back to the old sourceStart,
+-- so the sourceStart time and the encoderStart time are identical.
+
+-- Bundle relevant start/end times & speed
+encode_times = (startTime, endTime, speed) ->
+	outputDuration = (endTime - startTime) / speed
+	{
+		sourceStart: startTime
+		sourceEnd: endTime
+		speed: speed
+		encoderStart: startTime -- not scaled, see comment above
+		encoderEnd: startTime + outputDuration
+		outputDuration: outputDuration
+	}
+
+get_speed_video_flags = (times) ->
+	if times.speed == 1
+		return {}
+	-- strategy: trim in source time first, then rebase and apply the speed
+	-- change, then offset back to the old source start.
+	{
+		"--vf-add=trim=start=#{times.sourceStart}:end=#{times.sourceEnd}"
+		"--vf-add=setpts=(PTS-STARTPTS)/#{times.speed}"
+		"--vf-add=setpts=PTS+#{times.sourceStart}/TB"
+	}
+
+get_speed_audio_flags = (times) ->
+	if times.speed == 1
+		return {}
+	-- libavfilter's atempo only accepts [0.5, 100]; below that it has to be
+	-- chained, so that any of mpv's speeds (down to 0.01) works.
+	atempo = {}
+	tempo = times.speed
+	while tempo < 0.5
+		atempo[#atempo + 1] = "atempo=0.5"
+		tempo *= 2
+	atempo[#atempo + 1] = "atempo=#{tempo}"
+	-- strategy: trim in source time first, then rebase to zero, execute the
+	-- speed change with atempo, then re-offset to the old source start.
+	{
+		"--af-add=atrim=start=#{times.sourceStart}:end=#{times.sourceEnd}"
+		"--af-add=asetpts=PTS-STARTPTS"
+		"--af-add=#{table.concat(atempo, ",")}"
+		"--af-add=asetpts=PTS+#{times.sourceStart}/TB"
+	}
+
+get_sub_speed_flags = (times) ->
+	sub_speed = mp.get_property_number("sub-speed", 1)
+	sub_delay = mp.get_property_number("sub-delay", 0)
+	if times.speed != 1
+		-- speed change and re-offset to the old source start
+		sub_speed *= 1 / times.speed
+		sub_delay += times.sourceStart - times.sourceStart / times.speed
 	ret = {}
-	speed = mp.get_property_native("speed")
-	if speed != 1
-		append(ret, {
-			"--vf-add=setpts=PTS/#{speed}",
-			"--af-add=atempo=#{speed}",
-			"--sub-speed=1/#{speed}"
-		})
+	append(ret, {"--sub-speed=#{sub_speed}"}) if sub_speed != 1
+	append(ret, {"--sub-delay=#{sub_delay}"}) if sub_delay != 0
 	return ret
 
 get_metadata_flags = ->
@@ -260,7 +320,7 @@ get_video_filters = (format, region) ->
 
 	return filters
 
-get_video_encode_flags = (format, region) ->
+get_video_encode_flags = (format, region, times) ->
 	flags = {}
 	append(flags, get_playback_options!)
 	append(flags, get_sub_options!)
@@ -272,7 +332,9 @@ get_video_encode_flags = (format, region) ->
 			"--vf-add=#{f}"
 		})
 
-	append(flags, get_speed_flags!)
+	if not format.handlesSpeedInFilterGraph
+		append(flags, get_speed_video_flags(times))
+	append(flags, get_sub_speed_flags(times))
 	return flags
 
 calculate_bitrate = (active_tracks, format, length) ->
@@ -347,10 +409,13 @@ encode = (region, startTime, endTime, onDone) ->
 		onDone(false) if onDone
 		return
 
+	speed = mp.get_property_native("speed") or 1
+	times = encode_times(startTime, endTime, speed)
+
 	command = {
 		"mpv", path,
-		"--start=" .. seconds_to_time_string(startTime, false, true),
-		"--end=" .. seconds_to_time_string(endTime, false, true),
+		"--start=" .. seconds_to_time_string(times.encoderStart, false, true),
+		"--end=" .. seconds_to_time_string(times.encoderEnd, false, true),
 		-- When loop-file=inf, the encode won't end. Set this to override.
 		"--loop-file=no",
 		-- Same thing with --pause
@@ -381,7 +446,10 @@ encode = (region, startTime, endTime, onDone) ->
 
 	if format.videoCodec != ""
 		-- All those are only valid for video codecs.
-		append(command, get_video_encode_flags(format, region))
+		append(command, get_video_encode_flags(format, region, times))
+
+	if format.audioCodec != ""
+		append(command, get_speed_audio_flags(times))
 	
 	append(command, format\getFlags!)
 
@@ -390,7 +458,7 @@ encode = (region, startTime, endTime, onDone) ->
 
 	if format.acceptsBitrate
 		if options.target_filesize > 0
-			length = endTime - startTime
+			length = times.outputDuration
 			video_bitrate, audio_bitrate = calculate_bitrate(supported_active_tracks, format, length)
 			if video_bitrate
 				append(command, {
@@ -476,9 +544,9 @@ encode = (region, startTime, endTime, onDone) ->
 		if format.videoCodec == "libvpx"
 			-- We need to patch the pass log file before running the second pass.
 			msg.verbose("Patching libvpx pass log file...")
-			vp8_patch_logfile(get_pass_logfile_path(out_path), endTime - startTime)
+			vp8_patch_logfile(get_pass_logfile_path(out_path), times.outputDuration)
 
-	command = format\postCommandModifier(command, region, startTime, endTime)
+	command = format\postCommandModifier(command, region, times)
 
 	msg.info("Encoding to", out_path)
 	msg.verbose("Command line:", table.concat(command, " "))
@@ -492,7 +560,7 @@ encode = (region, startTime, endTime, onDone) ->
 			message("Started encode...")
 			res = run_subprocess({args: command, cancellable: false})
 		else
-			ewp = EncodeWithProgress(startTime, endTime)
+			ewp = EncodeWithProgress(times.encoderStart, times.encoderEnd)
 			res = ewp\startEncode(command)
 		if res
 			message("Encoded successfully! Saved to\\N#{bold(out_path)}")

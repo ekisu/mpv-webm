@@ -17,7 +17,7 @@ class WebP extends Format
 			"--ofopts-add=loop=0"
 		}
 
-	postCommandModifier: (command, region, startTime, endTime) =>
+	postCommandModifier: (command, region, times) =>
 		new_command = {}
 		for _, v in ipairs command
 			if not v\match("^%-%-ovcopts%-add=crf=")
