@@ -16,8 +16,7 @@ class PreviewPage extends Page
 
 	prepare: =>
 		vf = mp.get_property_native("vf")
-		-- Place sub rendering before crop in the filter chain.
-		vf[#vf + 1] = {name: "sub"}
+		-- Apply crop before subtitle rendering, matching mpv playback.
 		if @region\is_valid!
 			vf[#vf + 1] =
 				name: "crop"
@@ -26,6 +25,8 @@ class PreviewPage extends Page
 					h: tostring(@region.h)
 					x: tostring(@region.x)
 					y: tostring(@region.y)
+
+		vf[#vf + 1] = {name: "sub"}
 
 		mp.set_property_native("vf", vf)
 		if @startTime > -1 and @endTime > -1
