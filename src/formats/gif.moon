@@ -9,6 +9,9 @@ class GIF extends Format
 		-- GIF builds its own video filter graph, so it applies the speed
 		-- trim/setpts itself; encode then skips the generic video speed flags.
 		@handlesSpeedInFilterGraph = true
+		-- The sub filter runs before the graph retimes the video, so it needs
+		-- source-domain subtitle speed/delay rather than encoder-domain values.
+		@rendersSubtitlesInSourceTime = true
 
 	postCommandModifier: (command, region, times) =>
 		new_command = {}
@@ -24,7 +27,7 @@ class GIF extends Format
 
 		-- Mirror the default trim -> setpts order inside the graph.
 		if times.speed != 1
-			cfilter = cfilter .. "[vidtmp]setpts=(PTS-STARTPTS)/#{times.speed}[vidtmp];"
+			cfilter = cfilter .. "[vidtmp]setpts=(PTS-#{times.sourceStart}/TB)/#{times.speed}[vidtmp];"
 			cfilter = cfilter .. "[vidtmp]setpts=PTS+#{times.sourceStart}/TB[vidtmp];"
 
 		-- We iterate over commands in the order they are.

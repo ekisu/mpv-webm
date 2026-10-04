@@ -198,11 +198,11 @@ encode_times = (startTime, endTime, speed) ->
 get_speed_video_flags = (times) ->
 	if times.speed == 1
 		return {}
-	-- strategy: trim in source time first, then rebase and apply the speed
-	-- change, then offset back to the old source start.
+	-- Rebase both streams to the selection origin, not their first frame/sample,
+	-- so an initial A/V offset survives the speed change.
 	{
 		"--vf-add=trim=start=#{times.sourceStart}:end=#{times.sourceEnd}"
-		"--vf-add=setpts=(PTS-STARTPTS)/#{times.speed}"
+		"--vf-add=setpts=(PTS-#{times.sourceStart}/TB)/#{times.speed}"
 		"--vf-add=setpts=PTS+#{times.sourceStart}/TB"
 	}
 
@@ -217,22 +217,23 @@ get_speed_audio_flags = (times) ->
 		atempo[#atempo + 1] = "atempo=0.5"
 		tempo *= 2
 	atempo[#atempo + 1] = "atempo=#{tempo}"
-	-- strategy: trim in source time first, then rebase to zero, execute the
-	-- speed change with atempo, then re-offset to the old source start.
+	-- Scale the initial offset from the shared selection origin before atempo.
+	-- atempo changes sample duration but preserves the first input timestamp.
 	{
 		"--af-add=atrim=start=#{times.sourceStart}:end=#{times.sourceEnd}"
-		"--af-add=asetpts=PTS-STARTPTS"
+		"--af-add=asetpts=(PTS-#{times.sourceStart}/TB)/#{times.speed}"
 		"--af-add=#{table.concat(atempo, ",")}"
 		"--af-add=asetpts=PTS+#{times.sourceStart}/TB"
 	}
 
-get_sub_speed_flags = (times) ->
+get_sub_speed_flags = (times, source_time = false) ->
 	sub_speed = mp.get_property_number("sub-speed", 1)
 	sub_delay = mp.get_property_number("sub-delay", 0)
-	if times.speed != 1
-		-- speed change and re-offset to the old source start
+	-- A pre-retiming subtitle filter (GIF) needs the original user settings.
+	if times.speed != 1 and not source_time
+		-- Project both user adjustments into the encoder timeline.
 		sub_speed *= 1 / times.speed
-		sub_delay += times.sourceStart - times.sourceStart / times.speed
+		sub_delay = sub_delay / times.speed + times.sourceStart - times.sourceStart / times.speed
 	ret = {}
 	append(ret, {"--sub-speed=#{sub_speed}"}) if sub_speed != 1
 	append(ret, {"--sub-delay=#{sub_delay}"}) if sub_delay != 0
@@ -334,7 +335,7 @@ get_video_encode_flags = (format, region, times) ->
 
 	if not format.handlesSpeedInFilterGraph
 		append(flags, get_speed_video_flags(times))
-	append(flags, get_sub_speed_flags(times))
+	append(flags, get_sub_speed_flags(times, format.rendersSubtitlesInSourceTime))
 	return flags
 
 calculate_bitrate = (active_tracks, format, length) ->
