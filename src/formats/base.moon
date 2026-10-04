@@ -33,5 +33,5 @@ class Format
 		return codecs
 
 	-- Method to modify commandline arguments just before the command is executed
-	postCommandModifier: (command, region, startTime, endTime) =>
+	postCommandModifier: (command, region, times) =>
 		return command
