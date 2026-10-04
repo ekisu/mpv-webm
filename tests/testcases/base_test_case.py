@@ -164,11 +164,17 @@ class BaseTestCase(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr.decode(errors="replace"))
         return result.stdout
 
-    def createVideo(self, name="source.mkv", size="320x180", duration=3, color=None):
+    def createVideo(self, name="source.mkv", size="320x180", duration=3, color=None, filters=None,
+                    audio=None):
         source = self.tempdir / name
         pattern = f"color=c={color}:s={size}:r=10:d={duration}" if color else f"testsrc2=size={size}:rate=10:duration={duration}"
-        self.runTool("ffmpeg", "-v", "error", "-f", "lavfi", "-i", pattern,
-                     "-c:v", "ffv1", str(source))
+        args = ["ffmpeg", "-v", "error", "-f", "lavfi", "-i", pattern]
+        if audio:
+            args += ["-f", "lavfi", "-i", audio, "-c:a", "pcm_s16le"]
+        if filters:
+            args += ["-vf", filters]
+        args += ["-c:v", "ffv1", str(source)]
+        self.runTool(*args)
         return source
 
     def decodeVideo(self, path):
