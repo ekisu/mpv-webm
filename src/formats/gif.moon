@@ -9,9 +9,9 @@ class GIF extends Format
 		-- GIF builds its own video filter graph, so it applies the speed
 		-- trim/setpts itself; encode then skips the generic video speed flags.
 		@handlesSpeedInFilterGraph = true
-		-- The sub filter runs before the graph retimes the video, so it needs
-		-- source-domain subtitle speed/delay rather than encoder-domain values.
-		@rendersSubtitlesInSourceTime = true
+		-- The sub filter runs after the graph retimes the video, so it needs
+		-- encoder-domain subtitle speed/delay, just like other video formats.
+		@rendersSubtitlesInSourceTime = false
 
 	postCommandModifier: (command, region, times) =>
 		new_command = {}
@@ -56,18 +56,21 @@ class GIF extends Format
 				append(new_command, {v})
 				continue
 
-		-- complete the complex filter with split->palettegen->paletteuse
-		cfilter = cfilter .. "[vidtmp]split[topal][vidf];"
-		cfilter = cfilter .. "[topal]palettegen[pal];"
+		-- Finish the video filter graph before rendering subtitles. This matches
+		-- normal mpv playback, where subtitles are rendered over the cropped
+		-- and scaled video rather than being cropped with the source frame.
+		cfilter = cfilter .. "[vidtmp]null[out]"
+		append(new_command, { "--vf-add=lavfi=[#{cfilter}]", "--vf-add=sub" })
 
-		cfilter = cfilter .. "[vidf][pal]paletteuse=diff_mode=rectangle"
+		-- Generate the palette after subtitles have been rendered so subtitle
+		-- colors are represented in the GIF palette.
+		palette_filter = "[in]split[topal][vidf];"
+		palette_filter = palette_filter .. "[topal]palettegen[pal];"
+		palette_filter = palette_filter .. "[vidf][pal]paletteuse=diff_mode=rectangle"
 		if options.gif_dither != 6
-			cfilter = cfilter .. ":dither=bayer:bayer_scale=#{options.gif_dither}"
-		cfilter = cfilter .. "[out]"
-
-		-- Render subtitles before palette generation. lavfi-complex runs before
-		-- mpv's video filters, so its palette cannot include subtitle colors.
-		append(new_command, { "--vf-add=sub", "--vf-add=lavfi=[#{cfilter}]" })
+			palette_filter = palette_filter .. ":dither=bayer:bayer_scale=#{options.gif_dither}"
+		palette_filter = palette_filter .. "[out]"
+		append(new_command, { "--vf-add=lavfi=[#{palette_filter}]" })
 
 		return new_command
 
